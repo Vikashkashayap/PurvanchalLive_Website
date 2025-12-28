@@ -36,7 +36,7 @@ export interface NewsFormData {
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -139,7 +139,8 @@ export const clearToken = (): void => {
 
 // Helper function to get backend base URL for media files
 export const getBackendBaseUrl = (): string => {
-  return import.meta.env.VITE_API_URL.replace('/api', '');
+  // In production, uploads are served from the same domain via Nginx reverse proxy
+  return '';
 };
 
 export default api;

@@ -35,10 +35,15 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+      'https://purvanchallive.in',
+      'https://www.purvanchallive.in',
+    ]
+  : true; // Allow all origins in development
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL || false
-    : true, // Allow all origins in development
+  origin: allowedOrigins,
   credentials: true
 }));
 
