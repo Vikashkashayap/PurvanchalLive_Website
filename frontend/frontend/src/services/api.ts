@@ -22,11 +22,6 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
-  admin: {
-    _id: string;
-    email: string;
-    name: string;
-  };
 }
 
 // News creation/update interface

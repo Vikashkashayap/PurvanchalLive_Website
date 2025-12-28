@@ -37,7 +37,7 @@ const Login = () => {
       setError(null);
 
       const response = await authAPI.login(formData);
-      setToken(response.data.token);
+      setToken(response.token);
 
       // Redirect to the page they were trying to access, or dashboard
       navigate(from, { replace: true });

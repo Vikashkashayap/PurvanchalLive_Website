@@ -69,7 +69,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       console.log('Editor content updated, HTML length:', html.length);
       onChange(html);
     },
-    onCreate: ({ editor }) => {
+    onCreate: ({ editor: _editor }) => {
       console.log('RichTextEditor initialized with content length:', content.length);
       console.log('Content preview:', content.substring(0, 200));
     },
