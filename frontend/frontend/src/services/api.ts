@@ -21,7 +21,14 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
+  success: boolean;
   token: string;
+  user: {
+    _id: string;
+    email: string;
+    name?: string;
+    role?: string;
+  };
 }
 
 // News creation/update interface
@@ -86,11 +93,6 @@ api.interceptors.response.use(
 export const authAPI = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const response = await api.post<LoginResponse>('/auth/login', credentials);
-    // Handle different response structures
-    if (response.data?.data?.token) {
-      return response.data.data;
-    }
-    // Return the full response data if token is directly in data
     return response.data;
   },
 
