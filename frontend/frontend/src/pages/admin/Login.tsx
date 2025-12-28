@@ -37,7 +37,13 @@ const Login = () => {
       setError(null);
 
       const response = await authAPI.login(formData);
-      setToken(response.token);
+
+      // Validate response structure
+      if (!response.data?.token) {
+        throw new Error('Invalid login response: missing token');
+      }
+
+      setToken(response.data.token);
 
       // Redirect to the page they were trying to access, or dashboard
       navigate(from, { replace: true });

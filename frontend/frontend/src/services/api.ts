@@ -22,12 +22,15 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   success: boolean;
-  token: string;
-  user: {
-    _id: string;
-    email: string;
-    name?: string;
-    role?: string;
+  message: string;
+  data: {
+    token: string;
+    admin: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+    };
   };
 }
 
@@ -49,12 +52,15 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add JWT token
+// Request interceptor to add JWT token (only if valid)
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getToken(); // getToken() now validates the token
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Ensure no Authorization header is present for invalid/missing tokens
+      delete config.headers.Authorization;
     }
     return config;
   },
@@ -146,19 +152,48 @@ export const newsAPI = {
   },
 };
 
+// Helper function to validate JWT token format
+export const isValidToken = (token: string | null): boolean => {
+  if (!token || typeof token !== 'string') {
+    return false;
+  }
+
+  // Remove any surrounding quotes that might have been accidentally added
+  const cleanToken = token.replace(/^["']|["']$/g, '');
+
+  // Basic JWT structure validation: should have 3 parts separated by dots
+  const parts = cleanToken.split('.');
+  if (parts.length !== 3) {
+    return false;
+  }
+
+  // Check if all parts are base64-like (contain only valid base64 characters)
+  const base64Regex = /^[A-Za-z0-9-_]+$/;
+  return parts.every(part => base64Regex.test(part));
+};
+
 // Helper function to check if user is authenticated
 export const isAuthenticated = (): boolean => {
-  return !!localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  return isValidToken(token);
 };
 
-// Helper function to get token
+// Helper function to get valid token
 export const getToken = (): string | null => {
-  return localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  return isValidToken(token) ? token : null;
 };
 
-// Helper function to set token
-export const setToken = (token: string): void => {
-  localStorage.setItem('token', token);
+// Helper function to set token (with validation)
+export const setToken = (token: string | undefined): void => {
+  if (!token || !isValidToken(token)) {
+    console.error('Invalid or missing token provided to setToken:', token);
+    throw new Error('Invalid token format');
+  }
+
+  // Remove any surrounding quotes that might have been accidentally added
+  const cleanToken = token.replace(/^["']|["']$/g, '');
+  localStorage.setItem('token', cleanToken);
 };
 
 // Helper function to clear token
