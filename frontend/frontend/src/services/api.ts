@@ -56,7 +56,7 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token expiration
+// Response interceptor to handle token expiration and network errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -65,6 +65,19 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/admin/login';
     }
+
+    // Handle network errors or server unavailable
+    if (!error.response) {
+      console.error('Network error or server unavailable:', error.message);
+      // Create a custom error for network issues
+      const networkError = {
+        ...error,
+        message: 'Unable to connect to server. Please check your internet connection and try again.',
+        isNetworkError: true
+      };
+      return Promise.reject(networkError);
+    }
+
     return Promise.reject(error);
   }
 );
@@ -73,6 +86,11 @@ api.interceptors.response.use(
 export const authAPI = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const response = await api.post<LoginResponse>('/auth/login', credentials);
+    // Handle different response structures
+    if (response.data?.data?.token) {
+      return response.data.data;
+    }
+    // Return the full response data if token is directly in data
     return response.data;
   },
 
@@ -86,7 +104,16 @@ export const authAPI = {
 export const newsAPI = {
   getAll: async (): Promise<News[]> => {
     const response = await api.get('/news');
-    return response.data.data.news;
+    // Handle different response structures for better error resilience
+    if (response.data?.data?.news) {
+      return response.data.data.news;
+    }
+    // Fallback for different response structures
+    if (response.data?.news) {
+      return response.data.news;
+    }
+    // If no news data found, return empty array
+    return [];
   },
 
   getById: async (id: string): Promise<News> => {
