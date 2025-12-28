@@ -36,7 +36,7 @@ export interface NewsFormData {
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: '/api', // Will be proxied to http://localhost:5000
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -135,6 +135,11 @@ export const setToken = (token: string): void => {
 // Helper function to clear token
 export const clearToken = (): void => {
   localStorage.removeItem('token');
+};
+
+// Helper function to get backend base URL for media files
+export const getBackendBaseUrl = (): string => {
+  return import.meta.env.VITE_API_URL.replace('/api', '');
 };
 
 export default api;

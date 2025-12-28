@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { type News, newsAPI } from '../services/api';
+import { type News, newsAPI, getBackendBaseUrl } from '../services/api';
 
 const NewsDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -154,7 +154,7 @@ const NewsDetail = () => {
         {news.imageUrl && (
           <div className="mb-8">
             <img
-              src={`http://localhost:5000${news.imageUrl}`}
+              src={`${getBackendBaseUrl()}${news.imageUrl}`}
               alt={news.title}
               className="w-full max-h-96 object-cover rounded-lg shadow-lg"
               onError={(e) => {
@@ -188,7 +188,7 @@ const NewsDetail = () => {
                 ></iframe>
               ) : news.videoFileUrl ? (
                 <video
-                  src={`http://localhost:5000${news.videoFileUrl}`}
+                  src={`${getBackendBaseUrl()}${news.videoFileUrl}`}
                   controls
                   className="w-full h-full rounded-lg"
                 >
@@ -196,7 +196,7 @@ const NewsDetail = () => {
                 </video>
               ) : (
                 <video
-                  src={`http://localhost:5000${news.videoUrl}`}
+                  src={`${getBackendBaseUrl()}${news.videoUrl}`}
                   controls
                   className="w-full h-full rounded-lg"
                 >

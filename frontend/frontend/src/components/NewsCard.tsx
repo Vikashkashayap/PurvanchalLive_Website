@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { type News } from '../services/api';
+import { type News, getBackendBaseUrl } from '../services/api';
 
 interface NewsCardProps {
   news: News;
@@ -31,7 +31,7 @@ const NewsCard = ({ news }: NewsCardProps) => {
         {news.imageUrl && (
           <div className="aspect-video overflow-hidden rounded-t-lg">
             <img
-              src={`http://localhost:5000${news.imageUrl}`}
+              src={`${getBackendBaseUrl()}${news.imageUrl}`}
               alt={news.title}
               className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
               onError={(e) => {

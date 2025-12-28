@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { type News, newsAPI } from '../../services/api';
+import { type News, newsAPI, getBackendBaseUrl } from '../../services/api';
 
 const Dashboard = () => {
   const [news, setNews] = useState<News[]>([]);
@@ -181,7 +181,7 @@ const Dashboard = () => {
                           {item.imageUrl && (
                             <img
                               className="h-12 w-12 rounded-lg object-cover mr-3"
-                              src={`http://localhost:5000${item.imageUrl}`}
+                              src={`${getBackendBaseUrl()}${item.imageUrl}`}
                               alt={item.title}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';

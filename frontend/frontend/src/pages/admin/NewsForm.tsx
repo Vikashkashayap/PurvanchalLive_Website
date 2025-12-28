@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { newsAPI, type NewsFormData } from '../../services/api';
+import { newsAPI, type NewsFormData, getBackendBaseUrl } from '../../services/api';
 import RichTextEditor from '../../components/RichTextEditor';
 import VideoUploader from '../../components/VideoUploader';
 import HindiKeyboard from '../../components/HindiKeyboard';
@@ -56,7 +56,7 @@ const NewsForm = () => {
         isPublished: news.isPublished,
       });
       if (news.imageUrl) {
-        setImagePreview(`http://localhost:5000${news.imageUrl}`);
+        setImagePreview(`${getBackendBaseUrl()}${news.imageUrl}`);
       }
     } catch (err) {
       console.error('Error fetching news for edit:', err);
