@@ -1,0 +1,145 @@
+import axios from 'axios';
+
+// News interface matching backend model
+export interface News {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  videoFileUrl?: string;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Login interface
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  admin: {
+    _id: string;
+    email: string;
+    name: string;
+  };
+}
+
+// News creation/update interface
+export interface NewsFormData {
+  title: string;
+  description: string;
+  category: string;
+  image?: File;
+  videoUrl?: string;
+  isPublished: boolean;
+}
+
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL: '/api', // Will be proxied to http://localhost:5000
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add JWT token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, clear localStorage and redirect to login
+      localStorage.removeItem('token');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API calls
+export const authAPI = {
+  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/auth/login', credentials);
+    return response.data;
+  },
+
+  getProfile: async () => {
+    const response = await api.get('/auth/profile');
+    return response.data;
+  },
+};
+
+// News API calls
+export const newsAPI = {
+  getAll: async (): Promise<News[]> => {
+    const response = await api.get('/news');
+    return response.data.data.news;
+  },
+
+  getById: async (id: string): Promise<News> => {
+    const response = await api.get(`/news/${id}`);
+    return response.data.data;
+  },
+
+  create: async (formData: FormData): Promise<News> => {
+    const response = await api.post('/news', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data;
+  },
+
+  update: async (id: string, formData: FormData): Promise<News> => {
+    const response = await api.put(`/news/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/news/${id}`);
+  },
+};
+
+// Helper function to check if user is authenticated
+export const isAuthenticated = (): boolean => {
+  return !!localStorage.getItem('token');
+};
+
+// Helper function to get token
+export const getToken = (): string | null => {
+  return localStorage.getItem('token');
+};
+
+// Helper function to set token
+export const setToken = (token: string): void => {
+  localStorage.setItem('token', token);
+};
+
+// Helper function to clear token
+export const clearToken = (): void => {
+  localStorage.removeItem('token');
+};
+
+export default api;
