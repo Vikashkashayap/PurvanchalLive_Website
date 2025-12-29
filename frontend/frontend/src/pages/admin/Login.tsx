@@ -38,12 +38,18 @@ const Login = () => {
 
       const response = await authAPI.login(formData);
 
-      // Validate response structure
+      // Validate response structure and token
       if (!response.data?.token) {
         throw new Error('Invalid login response: missing token');
       }
 
-      setToken(response.data.token);
+      // Store token safely with validation
+      try {
+        setToken(response.data.token);
+      } catch (tokenError) {
+        console.error('Token storage failed:', tokenError);
+        throw new Error('Failed to store authentication token');
+      }
 
       // Redirect to the page they were trying to access, or dashboard
       navigate(from, { replace: true });

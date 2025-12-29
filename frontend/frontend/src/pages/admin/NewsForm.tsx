@@ -1,49 +1,68 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { newsAPI, type NewsFormData, getBackendBaseUrl } from '../../services/api';
+import { useParams, Link } from 'react-router-dom';
+import { newsAPI, type NewsFormData, getBackendBaseUrl, isAuthenticated, type Category, categoryAPI } from '../../services/api';
 import RichTextEditor from '../../components/RichTextEditor';
 import VideoUploader from '../../components/VideoUploader';
 import HindiKeyboard from '../../components/HindiKeyboard';
 
-const categories = [
-  'ग्राम समाचार',
-  'राजनीति',
-  'शिक्षा',
-  'मौसम',
-  'स्वास्थ्य',
-  'कृषि',
-  'मनोरंजन',
-  'अन्य'
-];
-
 const NewsForm = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const isEditing = !!id;
 
   const [formData, setFormData] = useState<NewsFormData>({
-    title: 'गांव में नई विकास परियोजनाएं शुरू',
-    description: '<p>हमारे गांव में आज से नई विकास परियोजनाएं शुरू हो गई हैं। ग्राम पंचायत द्वारा शुरू की गई यह परियोजनाएं गांव के विकास में महत्वपूर्ण भूमिका निभाएंगी। इन परियोजनाओं में सड़क निर्माण, पानी की आपूर्ति प्रणाली में सुधार, और शिक्षा सुविधाओं का विस्तार शामिल है।</p>',
+    title: '',
+    description: '',
     category: 'ग्राम समाचार',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    isPublished: true,
+    videoUrl: '',
+    isPublished: true, // Default to published so news shows on public UI
   });
 
+  const [categories, setCategories] = useState<Category[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(isEditing);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [showContentField, setShowContentField] = useState(isEditing); // Show content field when editing, hide when creating new
 
   useEffect(() => {
+    fetchCategories();
     if (isEditing) {
       fetchNewsForEdit();
     }
   }, [id, isEditing]);
 
+  const fetchCategories = async () => {
+    try {
+      const categoriesData = await categoryAPI.getAll();
+      setCategories(categoriesData);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      // Use default categories as fallback
+      setCategories([
+        { _id: '1', name: 'ग्राम समाचार', description: '', createdAt: '', updatedAt: '' },
+        { _id: '2', name: 'राजनीति', description: '', createdAt: '', updatedAt: '' },
+        { _id: '3', name: 'शिक्षा', description: '', createdAt: '', updatedAt: '' },
+        { _id: '4', name: 'मौसम', description: '', createdAt: '', updatedAt: '' },
+        { _id: '5', name: 'स्वास्थ्य', description: '', createdAt: '', updatedAt: '' },
+        { _id: '6', name: 'कृषि', description: '', createdAt: '', updatedAt: '' },
+        { _id: '7', name: 'मनोरंजन', description: '', createdAt: '', updatedAt: '' },
+        { _id: '8', name: 'अन्य', description: '', createdAt: '', updatedAt: '' },
+      ]);
+    }
+  };
+
   const fetchNewsForEdit = async () => {
     if (!id) return;
+
+    // Check authentication before making API call
+    if (!isAuthenticated()) {
+      setError('Authentication required. Please log in again.');
+      setFetchLoading(false);
+      return;
+    }
 
     try {
       setFetchLoading(true);
@@ -116,15 +135,18 @@ const NewsForm = () => {
       setError('शीर्षक आवश्यक है');
       return false;
     }
-    // Check if rich text content has actual text (not just empty HTML tags)
-    const textContent = formData.description.replace(/<[^>]*>/g, '').trim();
-    if (!textContent) {
-      setError('विवरण आवश्यक है - कृपया कुछ सामग्री दर्ज करें');
-      return false;
-    }
     if (!formData.category) {
       setError('श्रेणी चुनें');
       return false;
+    }
+    // Only validate content if content field is shown
+    if (showContentField) {
+      // Check if rich text content has actual text (not just empty HTML tags)
+      const textContent = formData.description.replace(/<[^>]*>/g, '').trim();
+      if (!textContent) {
+        setError('विवरण आवश्यक है - कृपया कुछ सामग्री दर्ज करें');
+        return false;
+      }
     }
     return true;
   };
@@ -157,7 +179,7 @@ const NewsForm = () => {
       }
 
       await newsAPI.create(submitFormData);
-      navigate('/admin/dashboard');
+      setSuccess(true);
     } catch (err: any) {
       console.error('Error saving news:', err);
       setError(err.response?.data?.message || 'समाचार सहेजने में त्रुटि हुई।');
@@ -195,9 +217,48 @@ const NewsForm = () => {
           </h1>
         </div>
 
+        {/* Success Message */}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-6">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              समाचार सफलतापूर्वक {isEditing ? 'अपडेट' : 'बनाई'} गई है!
+            </div>
+            <div className="mt-4 flex space-x-4">
+              <Link
+                to="/admin/dashboard"
+                className="btn-primary"
+              >
+                डैशबोर्ड पर जाएं
+              </Link>
+              <button
+                onClick={() => {
+                  setSuccess(false);
+                  setFormData({
+                    title: '',
+                    description: '',
+                    category: 'ग्राम समाचार',
+                    videoUrl: '',
+                    isPublished: true,
+                  });
+                  setImageFile(null);
+                  setImagePreview('');
+                  setVideoFile(null);
+                }}
+                className="btn-secondary"
+              >
+                नई समाचार जोड़ें
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Form */}
-        <div className="bg-white shadow rounded-lg">
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        {!success && (
+          <div className="bg-white shadow rounded-lg">
+            <form onSubmit={handleSubmit} className="p-8 space-y-6">
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
@@ -259,107 +320,129 @@ const NewsForm = () => {
                 required
               >
                 {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category}
+                  <option key={category._id} value={category.name}>
+                    {category.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Description - Rich Text Editor */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                खबर का विवरण *
-              </label>
-              <RichTextEditor
-                content={formData.description}
-                onChange={handleContentChange}
-                placeholder="समाचार का विस्तृत विवरण दर्ज करें। आप टूलबार का उपयोग करके टेक्स्ट को फॉर्मेट कर सकते हैं, इमेज और वीडियो जोड़ सकते हैं।"
-                disabled={loading}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                टूलबार का उपयोग करके टेक्स्ट को फॉर्मेट करें, इमेज डालें, या YouTube वीडियो जोड़ें
-              </p>
-            </div>
+            {/* Show Content Field Button (only for new news) */}
+            {!isEditing && !showContentField && (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowContentField(true)}
+                  className="btn-primary"
+                  disabled={loading}
+                >
+                  अगला - सामग्री जोड़ें
+                </button>
+              </div>
+            )}
 
-            {/* Image Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                इमेज अपलोड
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                disabled={loading}
-              />
-              {imagePreview && (
-                <div className="mt-4">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="max-w-xs max-h-48 object-cover rounded-lg border"
+            {/* Content Fields - Show only when showContentField is true */}
+            {showContentField && (
+              <>
+                {/* Description - Rich Text Editor */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    खबर का विवरण {!isEditing && '*'}
+                  </label>
+                  <RichTextEditor
+                    content={formData.description}
+                    onChange={handleContentChange}
+                    placeholder="समाचार का विस्तृत विवरण दर्ज करें। आप टूलबार का उपयोग करके टेक्स्ट को फॉर्मेट कर सकते हैं, इमेज और वीडियो जोड़ सकते हैं।"
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    टूलबार का उपयोग करके टेक्स्ट को फॉर्मेट करें, इमेज डालें, या YouTube वीडियो जोड़ें
+                  </p>
+                </div>
+
+                {/* Image Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    इमेज अपलोड
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    disabled={loading}
+                  />
+                  {imagePreview && (
+                    <div className="mt-4">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="max-w-xs max-h-48 object-cover rounded-lg border"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Video Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    वीडियो अपलोड
+                  </label>
+                  <VideoUploader
+                    videoUrl={formData.videoUrl}
+                    onVideoUrlChange={handleVideoUrlChange}
+                    videoFile={videoFile}
+                    onVideoFileChange={handleVideoFileChange}
+                    disabled={loading}
                   />
                 </div>
-              )}
-            </div>
 
-            {/* Video Upload */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                वीडियो अपलोड
-              </label>
-              <VideoUploader
-                videoUrl={formData.videoUrl}
-                onVideoUrlChange={handleVideoUrlChange}
-                videoFile={videoFile}
-                onVideoFileChange={handleVideoFileChange}
-                disabled={loading}
-              />
-            </div>
+                {/* Publish Checkbox */}
+                <div className="flex items-center">
+                  <input
+                    id="isPublished"
+                    name="isPublished"
+                    type="checkbox"
+                    checked={formData.isPublished}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    disabled={loading}
+                  />
+                  <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-900">
+                    इस समाचार को प्रकाशित करें
+                  </label>
+                </div>
+              </>
+            )}
 
-            {/* Publish Checkbox */}
-            <div className="flex items-center">
-              <input
-                id="isPublished"
-                name="isPublished"
-                type="checkbox"
-                checked={formData.isPublished}
-                onChange={handleInputChange}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                disabled={loading}
-              />
-              <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-900">
-                इस समाचार को प्रकाशित करें
-              </label>
-            </div>
-
-            {/* Submit Buttons */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
-              <Link
-                to="/admin/dashboard"
-                className="btn-secondary"
-              >
-                रद्द करें
-              </Link>
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    सहेज रहा है...
-                  </div>
-                ) : (
-                  isEditing ? 'अपडेट करें' : 'सहेजें'
-                )}
-              </button>
-            </div>
+            {/* Submit Buttons - Only show when content field is visible */}
+            {showContentField && (
+              <div className="flex justify-end space-x-4 pt-6 border-t">
+                <Link
+                  to="/admin/dashboard"
+                  className="btn-secondary"
+                >
+                  रद्द करें
+                </Link>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      सहेज रहा है...
+                    </div>
+                  ) : (
+                    isEditing ? 'अपडेट करें' : 'सहेजें'
+                  )}
+                </button>
+              </div>
+            )}
           </form>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,21 +1,61 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { type News, newsAPI, getBackendBaseUrl } from '../../services/api';
+import { type News, newsAPI, getBackendBaseUrl, isAuthenticated, type Category, categoryAPI } from '../../services/api';
 
 const Dashboard = () => {
   const [news, setNews] = useState<News[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('सभी');
 
   useEffect(() => {
-    fetchNews();
+    // Only fetch data if user is authenticated
+    if (isAuthenticated()) {
+      fetchCategories();
+      fetchNews();
+    } else {
+      setLoading(false);
+      setError('Authentication required. Please log in again.');
+    }
   }, []);
 
-  const fetchNews = async () => {
+  // Refresh data when returning from form (check URL parameters)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('refresh') === 'true') {
+      // Clean URL and refetch
+      window.history.replaceState({}, '', window.location.pathname);
+      if (isAuthenticated()) {
+        fetchCategories();
+        fetchNews();
+      }
+    }
+  }, []);
+
+  // Refetch news when category filter changes
+  useEffect(() => {
+    if (isAuthenticated() && !loading) {
+      fetchNews(selectedCategory);
+    }
+  }, [selectedCategory]);
+
+  const fetchCategories = async () => {
+    try {
+      const categoriesData = await categoryAPI.getAll();
+      setCategories(categoriesData);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      // Don't set error for categories as it's not critical
+    }
+  };
+
+  const fetchNews = async (category?: string) => {
     try {
       setLoading(true);
-      const newsData = await newsAPI.getAll();
+      const categoryParam = category === 'सभी' ? undefined : category;
+      const newsData = await newsAPI.getAll(categoryParam);
       // Sort by creation date (newest first)
       const sortedNews = newsData.sort((a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -98,12 +138,34 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900">एडमिन डैशबोर्ड</h1>
             <p className="text-gray-600 mt-2">सभी समाचार प्रबंधित करें</p>
           </div>
-          <Link
-            to="/admin/news/new"
-            className="btn-primary"
-          >
-            नई खबर जोड़ें
-          </Link>
+          <div className="flex space-x-4">
+            <Link
+              to="/admin/categories"
+              className="btn-secondary"
+            >
+              <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 1v4m8-4v4" />
+              </svg>
+              श्रेणी प्रबंधन
+            </Link>
+            <button
+              onClick={() => fetchNews(selectedCategory)}
+              disabled={loading}
+              className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              रिफ्रेश करें
+            </button>
+            <Link
+              to="/admin/news/new"
+              className="btn-primary"
+            >
+              नई खबर जोड़ें
+            </Link>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -130,6 +192,29 @@ const Dashboard = () => {
               {news.filter(item => !item.isPublished).length}
             </div>
             <div className="text-gray-600">ड्राफ्ट</div>
+          </div>
+        </div>
+
+        {/* Category Filter */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">श्रेणी फिल्टर</h3>
+              <p className="text-sm text-gray-600">चुनिंदा श्रेणी की समाचार देखें</p>
+            </div>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="input-field max-w-xs"
+              disabled={loading}
+            >
+              <option value="सभी">सभी श्रेणियां</option>
+              {categories.map(category => (
+                <option key={category._id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

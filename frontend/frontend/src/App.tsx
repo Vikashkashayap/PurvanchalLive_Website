@@ -6,6 +6,7 @@ import NewsDetail from './pages/NewsDetail';
 import Login from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard';
 import NewsForm from './pages/admin/NewsForm';
+import CategoryManagement from './pages/admin/CategoryManagement';
 
 function App() {
   return (
@@ -40,6 +41,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <NewsForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/categories"
+            element={
+              <ProtectedRoute>
+                <CategoryManagement />
               </ProtectedRoute>
             }
           />
