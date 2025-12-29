@@ -306,3 +306,4 @@ export const deleteNews = async (req: AuthRequest, res: Response): Promise<void>
     });
   }
 };
+
