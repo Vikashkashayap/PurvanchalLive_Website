@@ -288,6 +288,7 @@ export const clearToken = (): void => {
 
 // Helper function to get backend base URL for media files
 export const getBackendBaseUrl = (): string => {
+  // In development, images are proxied through Vite
   // In production, uploads are served from the same domain via Nginx reverse proxy
   return '';
 };

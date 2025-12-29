@@ -12,6 +12,7 @@ dotenv.config();
 import connectDB from './config/database';
 import authRoutes from './routes/auth';
 import newsRoutes from './routes/news';
+import categoryRoutes from './routes/categories';
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

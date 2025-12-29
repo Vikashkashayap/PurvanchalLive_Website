@@ -51,10 +51,22 @@ export const getAllNews = async (req: AuthRequest, res: Response): Promise<void>
 
     const total = await News.countDocuments(query);
 
+    // Validate image URLs - remove news items with missing images
+    const validatedNews = news.filter(item => {
+      if (item.imageUrl) {
+        // Check if the image file exists
+        const fs = require('fs');
+        const path = require('path');
+        const imagePath = path.join(__dirname, '../../uploads', item.imageUrl.replace('/uploads/', ''));
+        return fs.existsSync(imagePath);
+      }
+      return true; // Keep items without images
+    });
+
     res.status(200).json({
       success: true,
       data: {
-        news,
+        news: validatedNews,
         pagination: {
           page,
           limit,
@@ -92,6 +104,16 @@ export const getNewsById = async (req: AuthRequest, res: Response): Promise<void
         message: 'समाचार नहीं मिला'
       });
       return;
+    }
+
+    // Validate image URL - clear it if the file doesn't exist
+    if (news.imageUrl) {
+      const fs = require('fs');
+      const path = require('path');
+      const imagePath = path.join(__dirname, '../../uploads', news.imageUrl.replace('/uploads/', ''));
+      if (!fs.existsSync(imagePath)) {
+        news.imageUrl = ''; // Clear the image URL if file doesn't exist
+      }
     }
 
     res.status(200).json({

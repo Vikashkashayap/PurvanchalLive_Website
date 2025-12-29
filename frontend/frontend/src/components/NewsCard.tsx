@@ -29,15 +29,19 @@ const NewsCard = ({ news }: NewsCardProps) => {
       <div className="news-card">
         {/* Image */}
         {news.imageUrl && (
-          <div className="aspect-video overflow-hidden rounded-t-lg">
+          <div className="aspect-video overflow-hidden rounded-t-lg bg-gray-200">
             <img
               src={`${getBackendBaseUrl()}${news.imageUrl}`}
               alt={news.title}
               className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
               onError={(e) => {
-                // Hide image if it fails to load
-                (e.target as HTMLImageElement).style.display = 'none';
+                // Hide image container if it fails to load
+                const container = (e.target as HTMLImageElement).parentElement;
+                if (container) {
+                  container.style.display = 'none';
+                }
               }}
+              loading="lazy"
             />
           </div>
         )}
