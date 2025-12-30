@@ -50,17 +50,6 @@ const Navbar = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // Preload admin components on hover for better UX
-  const preloadAdminComponents = () => {
-    if (isAdmin) return; // Already in admin, no need to preload
-
-    // Preload admin components when hovering over admin links
-    import('../pages/admin/Dashboard');
-    import('../pages/admin/NewsForm');
-    import('../pages/admin/CategoryManagement');
-    import('../pages/admin/MarqueeManagement');
-  };
-
   if (isAdmin) {
     return (
       <nav className="bg-gradient-to-r from-orange-50 via-white to-orange-50 shadow-xl border-b border-orange-200">
