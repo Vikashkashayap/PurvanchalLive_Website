@@ -11,7 +11,15 @@ interface AuthRequest extends Request {
 export const validateNews = [
   body('title').trim().isLength({ min: 1, max: 200 }).withMessage('शीर्षक 1-200 अक्षरों के बीच होना चाहिए'),
   body('description').trim().isLength({ min: 1, max: 1000000 }).withMessage('विवरण 1-1000000 अक्षरों के बीच होना चाहिए'), // Match model validation
-  body('category').isIn(['ग्राम समाचार', 'राजनीति', 'शिक्षा', 'मौसम', 'स्वास्थ्य', 'कृषि', 'मनोरंजन', 'अन्य']).withMessage('अमान्य श्रेणी')
+  body('category').custom(async (value: string) => {
+    // Import Category model dynamically to avoid circular dependency
+    const Category = (await import('../models/Category')).default;
+    const categoryExists = await Category.findOne({ name: value });
+    if (!categoryExists) {
+      throw new Error('अमान्य श्रेणी - यह श्रेणी मौजूद नहीं है');
+    }
+    return true;
+  })
 ];
 
 export const getAllNews = async (req: AuthRequest, res: Response): Promise<void> => {

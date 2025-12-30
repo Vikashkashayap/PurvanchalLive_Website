@@ -27,9 +27,14 @@ const NewsSchema: Schema = new Schema({
   category: {
     type: String,
     required: [true, 'श्रेणी आवश्यक है'],
-    enum: {
-      values: ['ग्राम समाचार', 'राजनीति', 'शिक्षा', 'मौसम', 'स्वास्थ्य', 'कृषि', 'मनोरंजन', 'अन्य'],
-      message: 'अमान्य श्रेणी'
+    validate: {
+      validator: async function(value: string) {
+        // Import Category model dynamically to avoid circular dependency
+        const Category = (await import('./Category')).default;
+        const categoryExists = await Category.findOne({ name: value });
+        return !!categoryExists;
+      },
+      message: 'अमान्य श्रेणी - यह श्रेणी मौजूद नहीं है'
     }
   },
   imageUrl: {
