@@ -16,16 +16,14 @@ const NewsCard = ({ news }: NewsCardProps) => {
     });
   };
 
-  // Strip HTML tags and truncate description for preview
+  // Truncate description for preview
   const truncateDescription = (description: string, maxLength: number = 150) => {
-    // Strip HTML tags
-    const textOnly = description.replace(/<[^>]*>/g, '').trim();
-    if (textOnly.length <= maxLength) return textOnly;
-    return textOnly.substring(0, maxLength) + '...';
+    if (description.length <= maxLength) return description;
+    return description.substring(0, maxLength) + '...';
   };
 
   return (
-    <Link to={`/news/${news._id}`} className="block">
+    <Link to={`/news/${news.slug || news._id}`} className="block">
       <div className="news-card">
         {/* Image */}
         {news.imageUrl && (
@@ -62,7 +60,7 @@ const NewsCard = ({ news }: NewsCardProps) => {
 
           {/* Description */}
           <p className="text-gray-600 mb-4 line-clamp-3">
-            {truncateDescription(news.description)}
+            {truncateDescription(news.shortDescription || news.description)}
           </p>
 
           {/* Date and Read More */}

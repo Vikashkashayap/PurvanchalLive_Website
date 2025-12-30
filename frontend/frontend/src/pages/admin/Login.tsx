@@ -28,7 +28,7 @@ const Login = () => {
     e.preventDefault();
 
     if (!formData.email || !formData.password) {
-      setError('कृपया सभी फ़ील्ड भरें');
+      setError('Please fill all fields');
       return;
     }
 
@@ -55,7 +55,7 @@ const Login = () => {
       navigate(from, { replace: true });
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.response?.data?.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -73,10 +73,10 @@ const Login = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-white">
-            गांव समाचार
+Gaon Samachar
           </h2>
           <h3 className="mt-2 text-xl text-white opacity-90">
-            एडमिन लॉगिन
+Admin Login
           </h3>
         </div>
       </div>
@@ -87,7 +87,7 @@ const Login = () => {
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                ईमेल
+Email
               </label>
               <input
                 id="email"
@@ -106,7 +106,7 @@ const Login = () => {
             {/* Password Field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                पासवर्ड
+Password
               </label>
               <input
                 id="password"
@@ -139,10 +139,10 @@ const Login = () => {
                 {loading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    लॉगिन हो रहा है...
+Logging in...
                   </div>
                 ) : (
-                  'लॉगिन करें'
+                  'Login'
                 )}
               </button>
             </div>
@@ -154,7 +154,7 @@ const Login = () => {
               to="/"
               className="text-orange-600 hover:text-orange-700 text-sm font-medium transition-colors"
             >
-              सार्वजनिक साइट पर वापस जाएं
+Back to Public Site
             </Link>
           </div>
         </div>

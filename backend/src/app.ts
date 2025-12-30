@@ -13,6 +13,7 @@ import connectDB from './config/database';
 import authRoutes from './routes/auth';
 import newsRoutes from './routes/news';
 import categoryRoutes from './routes/categories';
+import marqueeRoutes from './routes/marquee';
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/marquee', marqueeRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

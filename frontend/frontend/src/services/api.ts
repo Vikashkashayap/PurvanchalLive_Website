@@ -4,8 +4,10 @@ import axios from 'axios';
 export interface News {
   _id: string;
   title: string;
+  shortDescription?: string;
   description: string;
   category: string;
+  slug?: string;
   imageUrl?: string;
   videoUrl?: string;
   videoFileUrl?: string;
@@ -37,10 +39,12 @@ export interface LoginResponse {
 // News creation/update interface
 export interface NewsFormData {
   title: string;
+  shortDescription?: string;
   description: string;
   category: string;
   image?: File;
   videoUrl?: string;
+  slug?: string;
   isPublished: boolean;
 }
 
@@ -57,6 +61,25 @@ export interface Category {
 export interface CategoryFormData {
   name: string;
   description?: string;
+}
+
+// Marquee Content interface
+export interface MarqueeContent {
+  _id: string;
+  content: string;
+  type: 'breaking' | 'announcement';
+  isActive: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Marquee Content creation/update interface
+export interface MarqueeContentFormData {
+  content: string;
+  type: 'breaking' | 'announcement';
+  isActive?: boolean;
+  order?: number;
 }
 
 // Strict JWT token validation
@@ -191,6 +214,11 @@ export const newsAPI = {
     return response.data.data;
   },
 
+  getBySlug: async (slug: string): Promise<News> => {
+    const response = await api.get(`/news/slug/${slug}`);
+    return response.data.data;
+  },
+
   create: async (formData: FormData): Promise<News> => {
     const response = await api.post('/news', formData, {
       headers: {
@@ -211,6 +239,31 @@ export const newsAPI = {
 
   delete: async (id: string): Promise<void> => {
     await api.delete(`/news/${id}`);
+  },
+};
+
+export const marqueeAPI = {
+  getAll: async (type?: 'breaking' | 'announcement'): Promise<MarqueeContent[]> => {
+    const params: any = {};
+    if (type) {
+      params.type = type;
+    }
+    const response = await api.get('/marquee', { params });
+    return response.data.data || [];
+  },
+
+  create: async (data: MarqueeContentFormData): Promise<MarqueeContent> => {
+    const response = await api.post('/marquee', data);
+    return response.data.data;
+  },
+
+  update: async (id: string, data: Partial<MarqueeContentFormData>): Promise<MarqueeContent> => {
+    const response = await api.put(`/marquee/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/marquee/${id}`);
   },
 };
 

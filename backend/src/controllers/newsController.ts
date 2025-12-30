@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import News from '../models/News';
+import News, { MarqueeContent } from '../models/News';
 import path from 'path';
 import fs from 'fs';
 
@@ -9,14 +9,15 @@ interface AuthRequest extends Request {
 }
 
 export const validateNews = [
-  body('title').trim().isLength({ min: 1, max: 200 }).withMessage('शीर्षक 1-200 अक्षरों के बीच होना चाहिए'),
-  body('description').trim().isLength({ min: 1, max: 1000000 }).withMessage('विवरण 1-1000000 अक्षरों के बीच होना चाहिए'), // Match model validation
+  body('title').trim().isLength({ min: 1, max: 200 }).withMessage('Title must be between 1-200 characters'),
+  body('shortDescription').optional().isLength({ max: 500 }).withMessage('Short description must be less than 500 characters'),
+  body('description').trim().isLength({ min: 1, max: 1000000 }).withMessage('Description is required and must be between 1-1000000 characters'),
   body('category').custom(async (value: string) => {
     // Import Category model dynamically to avoid circular dependency
     const Category = (await import('../models/Category')).default;
     const categoryExists = await Category.findOne({ name: value });
     if (!categoryExists) {
-      throw new Error('अमान्य श्रेणी - यह श्रेणी मौजूद नहीं है');
+      throw new Error('Invalid category - this category does not exist');
     }
     return true;
   })
@@ -88,7 +89,7 @@ export const getAllNews = async (req: AuthRequest, res: Response): Promise<void>
     console.error('Get all news error:', error);
     res.status(500).json({
       success: false,
-      message: 'सर्वर त्रुटि'
+      message: 'Server error'
     });
   }
 };
@@ -109,7 +110,7 @@ export const getNewsById = async (req: AuthRequest, res: Response): Promise<void
     if (!news) {
       res.status(404).json({
         success: false,
-        message: 'समाचार नहीं मिला'
+        message: 'News not found'
       });
       return;
     }
@@ -133,7 +134,50 @@ export const getNewsById = async (req: AuthRequest, res: Response): Promise<void
     console.error('Get news by ID error:', error);
     res.status(500).json({
       success: false,
-      message: 'सर्वर त्रुटि'
+      message: 'Server error'
+    });
+  }
+};
+
+export const getNewsBySlug = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { slug } = req.params;
+
+    const query: any = { slug };
+
+    // Only show published news for public access (no admin check needed for slug routes)
+    query.isPublished = true;
+
+    const news = await News.findOne(query);
+
+    if (!news) {
+      res.status(404).json({
+        success: false,
+        message: 'News not found'
+      });
+      return;
+    }
+
+    // Validate image URL - clear it if the file doesn't exist
+    if (news.imageUrl) {
+      const fs = require('fs');
+      const path = require('path');
+      const imagePath = path.join(__dirname, '../../uploads', news.imageUrl.replace('/uploads/', ''));
+      if (!fs.existsSync(imagePath)) {
+        news.imageUrl = ''; // Clear the image URL if file doesn't exist
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: news
+    });
+
+  } catch (error) {
+    console.error('Get news by slug error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 };
@@ -144,13 +188,30 @@ export const createNews = async (req: AuthRequest, res: Response): Promise<void>
     if (!errors.isEmpty()) {
       res.status(400).json({
         success: false,
-        message: 'मान्यकरण त्रुटि',
+        message: 'Validation error',
         errors: errors.array()
       });
       return;
     }
 
-    const { title, description, category, videoUrl, isPublished } = req.body;
+    const { title, shortDescription, description, category, videoUrl, slug, isPublished } = req.body;
+
+    // Validate required fields
+    if (!title || !title.trim()) {
+      res.status(400).json({
+        success: false,
+        message: 'Title is required'
+      });
+      return;
+    }
+
+    if (!description || !description.trim()) {
+      res.status(400).json({
+        success: false,
+        message: 'Description is required'
+      });
+      return;
+    }
 
     // Handle image upload
     let imageUrl = '';
@@ -165,9 +226,11 @@ export const createNews = async (req: AuthRequest, res: Response): Promise<void>
     }
 
     const news = new News({
-      title,
-      description,
+      title: title.trim(),
+      shortDescription: shortDescription ? shortDescription.trim() : '',
+      description: description.trim(),
       category,
+      slug: slug || undefined,
       videoUrl: videoUrl || '',
       videoFileUrl,
       imageUrl,
@@ -178,15 +241,19 @@ export const createNews = async (req: AuthRequest, res: Response): Promise<void>
 
     res.status(201).json({
       success: true,
-      message: 'समाचार सफलतापूर्वक बनाया गया',
-      data: savedNews
+      message: 'News created successfully - title and description saved',
+      data: {
+        ...savedNews.toObject(),
+        title: savedNews.title,
+        description: savedNews.description
+      }
     });
 
   } catch (error) {
     console.error('Create news error:', error);
     res.status(500).json({
       success: false,
-      message: 'सर्वर त्रुटि'
+      message: 'Server error'
     });
   }
 };
@@ -197,20 +264,37 @@ export const updateNews = async (req: AuthRequest, res: Response): Promise<void>
     if (!errors.isEmpty()) {
       res.status(400).json({
         success: false,
-        message: 'मान्यकरण त्रुटि',
+        message: 'Validation error',
         errors: errors.array()
       });
       return;
     }
 
     const { id } = req.params;
-    const { title, description, category, videoUrl, isPublished } = req.body;
+    const { title, shortDescription, description, category, videoUrl, slug, isPublished } = req.body;
+
+    // Validate required fields
+    if (!title || !title.trim()) {
+      res.status(400).json({
+        success: false,
+        message: 'Title is required'
+      });
+      return;
+    }
+
+    if (!description || !description.trim()) {
+      res.status(400).json({
+        success: false,
+        message: 'Description is required'
+      });
+      return;
+    }
 
     const news = await News.findById(id);
     if (!news) {
       res.status(404).json({
         success: false,
-        message: 'समाचार नहीं मिला'
+        message: 'News not found'
       });
       return;
     }
@@ -244,9 +328,11 @@ export const updateNews = async (req: AuthRequest, res: Response): Promise<void>
     const updatedNews = await News.findByIdAndUpdate(
       id,
       {
-        title,
-        description,
+        title: title.trim(),
+        shortDescription: shortDescription ? shortDescription.trim() : '',
+        description: description.trim(),
         category,
+        slug: slug || undefined,
         videoUrl: videoUrl || '',
         videoFileUrl,
         imageUrl,
@@ -255,17 +341,29 @@ export const updateNews = async (req: AuthRequest, res: Response): Promise<void>
       { new: true, runValidators: true }
     );
 
+    if (!updatedNews) {
+      res.status(404).json({
+        success: false,
+        message: 'Error updating news'
+      });
+      return;
+    }
+
     res.status(200).json({
       success: true,
-      message: 'समाचार सफलतापूर्वक अपडेट किया गया',
-      data: updatedNews
+      message: 'News updated successfully - title and description updated',
+      data: {
+        ...updatedNews.toObject(),
+        title: updatedNews.title,
+        description: updatedNews.description
+      }
     });
 
   } catch (error) {
     console.error('Update news error:', error);
     res.status(500).json({
       success: false,
-      message: 'सर्वर त्रुटि'
+      message: 'Server error'
     });
   }
 };
@@ -278,7 +376,7 @@ export const deleteNews = async (req: AuthRequest, res: Response): Promise<void>
     if (!news) {
       res.status(404).json({
         success: false,
-        message: 'समाचार नहीं मिला'
+        message: 'News not found'
       });
       return;
     }
@@ -303,14 +401,14 @@ export const deleteNews = async (req: AuthRequest, res: Response): Promise<void>
 
     res.status(200).json({
       success: true,
-      message: 'समाचार सफलतापूर्वक हटाया गया'
+      message: 'News deleted successfully'
     });
 
   } catch (error) {
     console.error('Delete news error:', error);
     res.status(500).json({
       success: false,
-      message: 'सर्वर त्रुटि'
+      message: 'Server error'
     });
   }
 };

@@ -5,6 +5,23 @@ import RichTextEditor from '../../components/RichTextEditor';
 import VideoUploader from '../../components/VideoUploader';
 import HindiKeyboard from '../../components/HindiKeyboard';
 
+// Function to strip HTML tags from text
+const stripHtmlTags = (html: string): string => {
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  return tempDiv.textContent || tempDiv.innerText || '';
+};
+
+// Function to generate slug from title
+const generateSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+};
+
 const NewsForm = () => {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id;
@@ -14,8 +31,11 @@ const NewsForm = () => {
     description: '',
     category: 'ग्राम समाचार',
     videoUrl: '',
+    slug: '',
     isPublished: true, // Default to published so news shows on public UI
   });
+
+  const [shortDescription, setShortDescription] = useState<string>('');
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -69,17 +89,18 @@ const NewsForm = () => {
       const news = await newsAPI.getById(id);
       setFormData({
         title: news.title,
-        description: news.description || '', // Now expecting HTML content
+        description: news.description || '', // Rich text HTML content
         category: news.category,
         videoUrl: news.videoUrl || '',
         isPublished: news.isPublished,
       });
+      setShortDescription(news.shortDescription || '');
       if (news.imageUrl) {
         setImagePreview(`${getBackendBaseUrl()}${news.imageUrl}`);
       }
     } catch (err) {
       console.error('Error fetching news for edit:', err);
-      setError('समाचार लोड करने में त्रुटि हुई।');
+      setError('Error loading news.');
     } finally {
       setFetchLoading(false);
     }
@@ -89,9 +110,14 @@ const NewsForm = () => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
+    // Strip HTML tags from title field to prevent HTML content in titles
+    const processedValue = name === 'title' ? stripHtmlTags(value) : value;
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox' ? checked : processedValue,
+      // Auto-generate slug when title changes (but not when editing slug directly)
+      ...(name === 'title' && !isEditing ? { slug: generateSlug(processedValue) } : {}),
     }));
 
     // Clear error when user starts typing
@@ -132,21 +158,16 @@ const NewsForm = () => {
 
   const validateForm = (): boolean => {
     if (!formData.title.trim()) {
-      setError('शीर्षक आवश्यक है');
+      setError('Title is required');
+      return false;
+    }
+    if (!shortDescription.trim()) {
+      setError('Short description is required');
       return false;
     }
     if (!formData.category) {
-      setError('श्रेणी चुनें');
+      setError('Please select a category');
       return false;
-    }
-    // Only validate content if content field is shown
-    if (showContentField) {
-      // Check if rich text content has actual text (not just empty HTML tags)
-      const textContent = formData.description.replace(/<[^>]*>/g, '').trim();
-      if (!textContent) {
-        setError('विवरण आवश्यक है - कृपया कुछ सामग्री दर्ज करें');
-        return false;
-      }
     }
     return true;
   };
@@ -162,8 +183,10 @@ const NewsForm = () => {
 
       const submitFormData = new FormData();
       submitFormData.append('title', formData.title);
-      submitFormData.append('description', formData.description); // Now contains HTML
+      submitFormData.append('shortDescription', shortDescription);
+      submitFormData.append('description', formData.description); // Rich text HTML content
       submitFormData.append('category', formData.category);
+      submitFormData.append('slug', formData.slug || generateSlug(formData.title));
       submitFormData.append('isPublished', formData.isPublished.toString());
 
       if (formData.videoUrl) {
@@ -182,7 +205,7 @@ const NewsForm = () => {
       setSuccess(true);
     } catch (err: any) {
       console.error('Error saving news:', err);
-      setError(err.response?.data?.message || 'समाचार सहेजने में त्रुटि हुई।');
+      setError(err.response?.data?.message || 'Error saving news.');
     } finally {
       setLoading(false);
     }
@@ -194,7 +217,7 @@ const NewsForm = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-lg text-gray-600">समाचार लोड हो रहा है...</p>
+            <p className="mt-4 text-lg text-gray-600">Loading news...</p>
           </div>
         </div>
       </div>
@@ -210,10 +233,10 @@ const NewsForm = () => {
             to="/admin/dashboard"
             className="text-blue-600 hover:text-blue-800 mb-4 inline-block"
           >
-            ← डैशबोर्ड पर वापस जाएं
+← Back to Dashboard
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEditing ? 'समाचार संपादित करें' : 'नई समाचार जोड़ें'}
+            {isEditing ? 'Edit News' : 'Add New News'}
           </h1>
         </div>
 
@@ -224,14 +247,14 @@ const NewsForm = () => {
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              समाचार सफलतापूर्वक {isEditing ? 'अपडेट' : 'बनाई'} गई है!
+              News {isEditing ? 'updated' : 'created'} successfully!
             </div>
             <div className="mt-4 flex space-x-4">
               <Link
                 to="/admin/dashboard"
                 className="btn-primary"
               >
-                डैशबोर्ड पर जाएं
+Go to Dashboard
               </Link>
               <button
                 onClick={() => {
@@ -243,13 +266,14 @@ const NewsForm = () => {
                     videoUrl: '',
                     isPublished: true,
                   });
+                  setShortDescription('');
                   setImageFile(null);
                   setImagePreview('');
                   setVideoFile(null);
                 }}
                 className="btn-secondary"
               >
-                नई समाचार जोड़ें
+Add Another News
               </button>
             </div>
           </div>
@@ -270,7 +294,7 @@ const NewsForm = () => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                  खबर का शीर्षक *
+News Title *
                 </label>
                 <HindiKeyboard
                   onKeyPress={(key) => {
@@ -296,19 +320,51 @@ const NewsForm = () => {
                 value={formData.title}
                 onChange={handleInputChange}
                 className="input-field"
-                placeholder="समाचार का शीर्षक दर्ज करें"
+                placeholder="Enter news title"
                 disabled={loading}
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                हिंदी में टाइप करने के लिए ऊपर दिए गए कीबोर्ड का उपयोग करें या अपना कीबोर्ड स्विच करें
+                Use the keyboard above to type in Hindi or switch your keyboard
+              </p>
+            </div>
+
+            {/* Description */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+Short Description
+                </label>
+                <HindiKeyboard
+                  onKeyPress={(key) => {
+                    if (key === 'Backspace') {
+                      setShortDescription(prev => prev.slice(0, -1));
+                    } else {
+                      setShortDescription(prev => prev + key);
+                    }
+                  }}
+                  disabled={loading}
+                />
+              </div>
+              <textarea
+                id="shortDescription"
+                name="shortDescription"
+                value={shortDescription}
+                onChange={(e) => setShortDescription(e.target.value)}
+                rows={3}
+                className="input-field"
+                placeholder="Enter short description of the news"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Use the keyboard above to type in Hindi or switch your keyboard
               </p>
             </div>
 
             {/* Category */}
             <div>
               <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                श्रेणी *
+Category *
               </label>
               <select
                 id="category"
@@ -327,6 +383,26 @@ const NewsForm = () => {
               </select>
             </div>
 
+            {/* Slug */}
+            <div>
+              <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
+                Slug (URL)
+              </label>
+              <input
+                type="text"
+                id="slug"
+                name="slug"
+                value={formData.slug}
+                onChange={handleInputChange}
+                className="input-field"
+                placeholder="auto-generated-from-title"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                SEO-friendly URL slug. Auto-generated from title, but can be customized.
+              </p>
+            </div>
+
             {/* Show Content Field Button (only for new news) */}
             {!isEditing && !showContentField && (
               <div className="flex justify-center">
@@ -336,7 +412,7 @@ const NewsForm = () => {
                   className="btn-primary"
                   disabled={loading}
                 >
-                  अगला - सामग्री जोड़ें
+Next - Add Content
                 </button>
               </div>
             )}
@@ -344,26 +420,26 @@ const NewsForm = () => {
             {/* Content Fields - Show only when showContentField is true */}
             {showContentField && (
               <>
-                {/* Description - Rich Text Editor */}
+                {/* Detailed Content - Rich Text Editor */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    खबर का विवरण {!isEditing && '*'}
+Detailed Content {!isEditing && '*'}
                   </label>
                   <RichTextEditor
                     content={formData.description}
                     onChange={handleContentChange}
-                    placeholder="समाचार का विस्तृत विवरण दर्ज करें। आप टूलबार का उपयोग करके टेक्स्ट को फॉर्मेट कर सकते हैं, इमेज और वीडियो जोड़ सकते हैं।"
+                    placeholder="Enter detailed news content. You can format text, add images, and videos using the toolbar."
                     disabled={loading}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    टूलबार का उपयोग करके टेक्स्ट को फॉर्मेट करें, इमेज डालें, या YouTube वीडियो जोड़ें
+Use the toolbar to format text, insert images, or add YouTube videos
                   </p>
                 </div>
 
                 {/* Image Upload */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    इमेज अपलोड
+Image Upload
                   </label>
                   <input
                     type="file"
@@ -386,7 +462,7 @@ const NewsForm = () => {
                 {/* Video Upload */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    वीडियो अपलोड
+Video Upload
                   </label>
                   <VideoUploader
                     videoUrl={formData.videoUrl}
@@ -409,7 +485,7 @@ const NewsForm = () => {
                     disabled={loading}
                   />
                   <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-900">
-                    इस समाचार को प्रकाशित करें
+Publish this news
                   </label>
                 </div>
               </>
@@ -422,7 +498,7 @@ const NewsForm = () => {
                   to="/admin/dashboard"
                   className="btn-secondary"
                 >
-                  रद्द करें
+Cancel
                 </Link>
                 <button
                   type="submit"
@@ -432,10 +508,10 @@ const NewsForm = () => {
                   {loading ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      सहेज रहा है...
+Saving...
                     </div>
                   ) : (
-                    isEditing ? 'अपडेट करें' : 'सहेजें'
+                    isEditing ? 'Update' : 'Save'
                   )}
                 </button>
               </div>
