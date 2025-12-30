@@ -2,13 +2,33 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { type News, newsAPI, getBackendBaseUrl, isAuthenticated, type Category, categoryAPI } from '../../services/api';
 
+// Function to strip HTML tags from text
+const stripHtmlTags = (html: string): string => {
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  return tempDiv.textContent || tempDiv.innerText || '';
+};
+
+// Function to share news on WhatsApp
+const shareOnWhatsApp = (news: News) => {
+  const cleanTitle = stripHtmlTags(news.title);
+  const cleanDescription = stripHtmlTags(news.description).substring(0, 150) + '...';
+  const newsUrl = `${window.location.origin}/news/${news.slug || news._id}`;
+
+  // Create a clean, engaging message for WhatsApp
+  const message = `📰 *${cleanTitle}*\n\n${cleanDescription}\n\n📖 Read full article: ${newsUrl}`;
+
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  window.open(whatsappUrl, '_blank');
+};
+
 const Dashboard = () => {
   const [news, setNews] = useState<News[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('सभी');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   useEffect(() => {
     // Only fetch data if user is authenticated
@@ -54,7 +74,7 @@ const Dashboard = () => {
   const fetchNews = async (category?: string) => {
     try {
       setLoading(true);
-      const categoryParam = category === 'सभी' ? undefined : category;
+      const categoryParam = category === 'All' ? undefined : category;
       const newsData = await newsAPI.getAll(categoryParam);
       // Sort by creation date (newest first)
       const sortedNews = newsData.sort((a, b) =>
@@ -63,14 +83,14 @@ const Dashboard = () => {
       setNews(sortedNews);
     } catch (err) {
       console.error('Error fetching news:', err);
-      setError('समाचार लोड करने में त्रुटि हुई।');
+      setError('Error loading news.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('क्या आप इस समाचार को हटाना चाहते हैं? यह क्रिया वापस नहीं ली जा सकती।')) {
+    if (!window.confirm('Are you sure you want to delete this news? This action cannot be undone.')) {
       return;
     }
 
@@ -80,7 +100,7 @@ const Dashboard = () => {
       setNews(prev => prev.filter(item => item._id !== id));
     } catch (err) {
       console.error('Error deleting news:', err);
-      alert('समाचार हटाने में त्रुटि हुई।');
+      alert('Error deleting news.');
     } finally {
       setDeletingId(null);
     }
@@ -101,13 +121,13 @@ const Dashboard = () => {
       await fetchNews(); // Refresh the list
     } catch (err) {
       console.error('Error updating news:', err);
-      alert('समाचार अपडेट करने में त्रुटि हुई।');
+      alert('Error updating news.');
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('hi-IN', {
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -122,7 +142,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-lg text-gray-600">डेटा लोड हो रहा है...</p>
+            <p className="mt-4 text-lg text-gray-600">Loading data...</p>
           </div>
         </div>
       </div>
@@ -135,8 +155,8 @@ const Dashboard = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">एडमिन डैशबोर्ड</h1>
-            <p className="text-gray-600 mt-2">सभी समाचार प्रबंधित करें</p>
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-gray-600 mt-2">Manage all news</p>
           </div>
           <div className="flex space-x-4">
             <Link
@@ -147,7 +167,7 @@ const Dashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 1v4m8-4v4" />
               </svg>
-              श्रेणी प्रबंधन
+              Category Management
             </Link>
             <button
               onClick={() => fetchNews(selectedCategory)}
@@ -157,13 +177,13 @@ const Dashboard = () => {
               <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              रिफ्रेश करें
+              Refresh
             </button>
             <Link
               to="/admin/news/new"
               className="btn-primary"
             >
-              नई खबर जोड़ें
+              Add New News
             </Link>
           </div>
         </div>
@@ -179,19 +199,19 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-2xl font-bold text-blue-600">{news.length}</div>
-            <div className="text-gray-600">कुल समाचार</div>
+            <div className="text-gray-600">Total News</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-2xl font-bold text-green-600">
               {news.filter(item => item.isPublished).length}
             </div>
-            <div className="text-gray-600">प्रकाशित</div>
+            <div className="text-gray-600">Published</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-2xl font-bold text-orange-600">
               {news.filter(item => !item.isPublished).length}
             </div>
-            <div className="text-gray-600">ड्राफ्ट</div>
+            <div className="text-gray-600">Draft</div>
           </div>
         </div>
 
@@ -199,8 +219,8 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6 mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">श्रेणी फिल्टर</h3>
-              <p className="text-sm text-gray-600">चुनिंदा श्रेणी की समाचार देखें</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Category Filter</h3>
+              <p className="text-sm text-gray-600">View news of selected category</p>
             </div>
             <select
               value={selectedCategory}
@@ -208,7 +228,7 @@ const Dashboard = () => {
               className="input-field max-w-xs"
               disabled={loading}
             >
-              <option value="सभी">सभी श्रेणियां</option>
+              <option value="All">All Categories</option>
               {categories.map(category => (
                 <option key={category._id} value={category.name}>
                   {category.name}
@@ -224,16 +244,16 @@ const Dashboard = () => {
             <div className="text-center py-16">
               <div className="text-gray-400 text-6xl mb-4">📰</div>
               <h2 className="text-2xl font-semibold text-gray-700 mb-2">
-                कोई समाचार नहीं
+                No News
               </h2>
               <p className="text-gray-500 mb-6">
-                पहली समाचार जोड़ने के लिए "नई खबर जोड़ें" बटन पर क्लिक करें।
+                Click the "Add New News" button to add your first news.
               </p>
               <Link
                 to="/admin/news/new"
                 className="btn-primary"
               >
-                नई खबर जोड़ें
+                Add New News
               </Link>
             </div>
           ) : (
@@ -242,19 +262,19 @@ const Dashboard = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      समाचार
+                      News
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      श्रेणी
+                      Category
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      स्थिति
+                      Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      दिनांक
+                      Date
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      कार्य
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -275,10 +295,10 @@ const Dashboard = () => {
                           )}
                           <div>
                             <div className="text-sm font-medium text-gray-900 line-clamp-1 max-w-xs">
-                              {item.title}
+                              {stripHtmlTags(item.title)}
                             </div>
                             <div className="text-sm text-gray-500 line-clamp-1 max-w-xs">
-                              {item.description.substring(0, 50)}...
+                              {stripHtmlTags(item.description).substring(0, 50)}...
                             </div>
                           </div>
                         </div>
@@ -297,7 +317,7 @@ const Dashboard = () => {
                               : 'bg-orange-100 text-orange-800'
                           }`}
                         >
-                          {item.isPublished ? 'प्रकाशित' : 'ड्राफ्ट'}
+                          {item.isPublished ? 'Published' : 'Draft'}
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -306,24 +326,31 @@ const Dashboard = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <Link
-                            to={`/news/${item._id}`}
+                            to={`/news/${item.slug || item._id}`}
                             target="_blank"
                             className="text-blue-600 hover:text-blue-900"
                           >
-                            देखें
+                            View
                           </Link>
+                          <button
+                            onClick={() => shareOnWhatsApp(item)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Share on WhatsApp"
+                          >
+                            📱
+                          </button>
                           <Link
                             to={`/admin/news/edit/${item._id}`}
                             className="text-indigo-600 hover:text-indigo-900"
                           >
-                            संपादित करें
+                            Edit
                           </Link>
                           <button
                             onClick={() => handleDelete(item._id)}
                             disabled={deletingId === item._id}
                             className="text-red-600 hover:text-red-900 disabled:opacity-50"
                           >
-                            {deletingId === item._id ? 'हटा रहा है...' : 'हटाएं'}
+                            {deletingId === item._id ? 'Deleting...' : 'Delete'}
                           </button>
                         </div>
                       </td>

@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getAllNews,
   getNewsById,
+  getNewsBySlug,
   createNews,
   updateNews,
   deleteNews,
@@ -18,6 +19,9 @@ router.get('/', getAllNews);
 
 // GET /api/news/:id
 router.get('/:id', getNewsById);
+
+// GET /api/news/slug/:slug
+router.get('/slug/:slug', getNewsBySlug);
 
 // Protected routes (Admin only)
 router.use(authenticateToken);

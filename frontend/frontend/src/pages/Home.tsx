@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { type News, newsAPI, type Category, categoryAPI } from '../services/api';
 import NewsCard from '../components/NewsCard';
 import NewsLogo from '../assets/NewsLogo.png';
@@ -9,6 +9,19 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('सभी');
+
+  // Memoize filtered news for better performance
+  const filteredNews = useMemo(() => {
+    if (selectedCategory === 'सभी') {
+      return news;
+    }
+    return news.filter(item => item.category === selectedCategory);
+  }, [news, selectedCategory]);
+
+  // Memoize category change handler
+  const handleCategoryChange = useCallback((categoryName: string) => {
+    setSelectedCategory(categoryName);
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -141,7 +154,7 @@ const Home = () => {
             <div className="flex flex-wrap justify-center gap-2">
               <button
                 key="सभी"
-                onClick={() => setSelectedCategory('सभी')}
+                onClick={() => handleCategoryChange('सभी')}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
                   selectedCategory === 'सभी'
                     ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300'
@@ -153,7 +166,7 @@ const Home = () => {
               {categories.map((category) => (
                 <button
                   key={category._id}
-                  onClick={() => setSelectedCategory(category.name)}
+                  onClick={() => handleCategoryChange(category.name)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
                     selectedCategory === category.name
                       ? 'bg-orange-500 text-white shadow-lg ring-2 ring-orange-300'
@@ -170,7 +183,7 @@ const Home = () => {
 
       {/* News Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {news.length === 0 ? (
+        {filteredNews.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-gray-300 text-8xl mb-6">📰</div>
             <h2 className="text-3xl font-semibold text-gray-700 mb-4">
@@ -205,7 +218,7 @@ const Home = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {news.map((newsItem) => (
+              {filteredNews.map((newsItem) => (
                 <div key={newsItem._id} className="transform transition-all duration-300 hover:scale-105">
                   <NewsCard news={newsItem} />
                 </div>

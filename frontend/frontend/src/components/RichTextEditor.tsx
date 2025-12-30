@@ -69,7 +69,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       console.log('Editor content updated, HTML length:', html.length);
       onChange(html);
     },
-    onCreate: ({ editor: _editor }) => {
+    onCreate: () => {
       console.log('RichTextEditor initialized with content length:', content.length);
       console.log('Content preview:', content.substring(0, 200));
     },
@@ -309,7 +309,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       {/* Editor Content */}
       <EditorContent
         editor={editor}
-        className="min-h-[200px]"
+        className="min-h-[200px] [&_p]:leading-normal [&_p]:mb-1 [&_ul]:mb-1 [&_ol]:mb-1 [&_li]:mb-1 [&_h1]:mb-2 [&_h2]:mb-2 [&_h3]:mb-2 **:leading-normal"
       />
 
       {/* Hidden file input for images */}

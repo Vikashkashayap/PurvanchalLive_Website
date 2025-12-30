@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { type News, newsAPI, getBackendBaseUrl } from '../services/api';
 
 const NewsDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const [news, setNews] = useState<News | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchNewsDetail = async () => {
-      if (!id) return;
+      if (!slug) return;
 
       try {
         setLoading(true);
-        const newsData = await newsAPI.getById(id);
+        const newsData = await newsAPI.getBySlug(slug);
         setNews(newsData);
       } catch (err) {
         console.error('Error fetching news detail:', err);
@@ -25,7 +26,7 @@ const NewsDetail = () => {
     };
 
     fetchNewsDetail();
-  }, [id]);
+  }, [slug]);
 
   // Format date in Hindi style
   const formatDate = (dateString: string) => {
@@ -88,9 +89,45 @@ const NewsDetail = () => {
     );
   }
 
+  // Strip HTML tags for meta description
+  const stripHtmlTags = (html: string): string => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || '';
+  };
+
+  const cleanTitle = stripHtmlTags(news.title);
+  const cleanDescription = stripHtmlTags(news.shortDescription || news.description).substring(0, 160);
+  const newsUrl = `${window.location.origin}/news/${news.slug || news._id}`;
+  const imageUrl = news.imageUrl ? `${getBackendBaseUrl()}${news.imageUrl}` : '';
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <Helmet>
+        <title>{cleanTitle} - PNews</title>
+        <meta name="description" content={cleanDescription} />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={cleanTitle} />
+        <meta property="og:description" content={cleanDescription} />
+        <meta property="og:url" content={newsUrl} />
+        {imageUrl && <meta property="og:image" content={imageUrl} />}
+        {imageUrl && <meta property="og:image:width" content="1200" />}
+        {imageUrl && <meta property="og:image:height" content="630" />}
+
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:title" content={cleanTitle} />
+        <meta property="twitter:description" content={cleanDescription} />
+        {imageUrl && <meta property="twitter:image" content={imageUrl} />}
+
+        {/* WhatsApp specific */}
+        <meta property="og:site_name" content="PNews" />
+      </Helmet>
+
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <nav className="mb-6">
           <Link to="/" className="text-blue-600 hover:text-blue-800">
@@ -111,6 +148,13 @@ const NewsDetail = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
             {news.title}
           </h1>
+
+          {/* Short Description Summary */}
+          {news.shortDescription && (
+            <div className="text-gray-700 text-lg mb-6 italic border-l-4 border-blue-500 pl-4">
+              {news.shortDescription}
+            </div>
+          )}
 
           <div className="text-gray-600 text-lg mb-6">
             प्रकाशित: {formatDate(news.createdAt)}
@@ -215,6 +259,7 @@ const NewsDetail = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
