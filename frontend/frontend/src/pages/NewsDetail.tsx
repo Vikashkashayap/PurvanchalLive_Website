@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { type News, newsAPI, getBackendBaseUrl } from '../services/api';
+import { type News, newsAPI } from '../services/api';
 
 const NewsDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -62,8 +62,17 @@ const NewsDetail = () => {
   ).slice(0, 155);
 
   const newsUrl = `${window.location.origin}/news/${news.slug}`;
+
+  // For social sharing, we need absolute URLs
+  const getAbsoluteUrl = (relativePath: string) => {
+    return `${window.location.origin}${relativePath}`;
+  };
+
   const imageUrl = news.imageUrl
-    ? `${getBackendBaseUrl()}${news.imageUrl}`
+    ? getAbsoluteUrl(news.imageUrl)
+    : undefined;
+  const videoFileUrl = news.videoFileUrl
+    ? getAbsoluteUrl(news.videoFileUrl)
     : undefined;
 
   /* ---------- SHARE ---------- */
@@ -92,21 +101,36 @@ const NewsDetail = () => {
         <title>{cleanTitle} | Purvanchal Live</title>
         <meta name="description" content={cleanDescription} />
 
-        {/* Open Graph */}
+        {/* Open Graph - News Article */}
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="Purvanchal Live" />
         <meta property="og:title" content={cleanTitle} />
         <meta property="og:description" content={cleanDescription} />
         <meta property="og:url" content={newsUrl} />
-        {imageUrl && <meta property="og:image" content={imageUrl} />}
-        {imageUrl && <meta property="og:image:width" content="1200" />}
-        {imageUrl && <meta property="og:image:height" content="630" />}
+        <meta property="article:author" content="Purvanchal Live" />
+        <meta property="article:section" content={news.category} />
+        <meta property="article:published_time" content={news.createdAt} />
 
-        {/* Twitter */}
+        {/* Priority: News thumbnail over company logo */}
+        {imageUrl ? (
+          <>
+            <meta property="og:image" content={imageUrl} />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
+            <meta property="og:image:type" content="image/jpeg" />
+          </>
+        ) : (
+          // Fallback to company logo if no news image
+          <meta property="og:image" content={`${window.location.origin}/favicon.png`} />
+        )}
+
+        {/* Twitter Cards - Large image for better engagement */}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@purvanchallive" />
         <meta name="twitter:title" content={cleanTitle} />
         <meta name="twitter:description" content={cleanDescription} />
         {imageUrl && <meta name="twitter:image" content={imageUrl} />}
+        {imageUrl && <meta name="twitter:image:alt" content={cleanTitle} />}
       </Helmet>
 
       {/* ---------- PAGE ---------- */}
@@ -152,6 +176,41 @@ const NewsDetail = () => {
               alt={cleanTitle}
               className="w-full rounded-lg mb-6"
             />
+          )}
+
+          {/* Video */}
+          {(news.videoUrl || videoFileUrl) && (
+            <div className="mb-6">
+              {news.videoUrl ? (
+                // YouTube or external video URL
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  <iframe
+                    src={news.videoUrl}
+                    title={cleanTitle}
+                    className="absolute top-0 left-0 w-full h-full rounded-lg"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : videoFileUrl ? (
+                // Uploaded video file
+                <video
+                  controls
+                  className="w-full rounded-lg max-h-96"
+                  poster={imageUrl} // Use the news image as poster if available
+                >
+                  <source src={videoFileUrl} type="video/mp4" />
+                  <source src={videoFileUrl} type="video/avi" />
+                  <source src={videoFileUrl} type="video/mov" />
+                  <source src={videoFileUrl} type="video/wmv" />
+                  <source src={videoFileUrl} type="video/flv" />
+                  <source src={videoFileUrl} type="video/webm" />
+                  <source src={videoFileUrl} type="video/mkv" />
+                  Your browser does not support the video tag.
+                </video>
+              ) : null}
+            </div>
           )}
 
           {/* Content */}

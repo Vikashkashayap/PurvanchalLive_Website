@@ -9,7 +9,7 @@ import {
   validateNews
 } from '../controllers/newsController';
 import { authenticateToken } from '../middleware/auth';
-import { uploadNewsFiles, uploadSingleImage, extractBase64Images } from '../middleware/upload';
+import { uploadNewsFilesLarge, uploadSingleImage, extractBase64Images } from '../middleware/upload';
 
 const router = express.Router();
 
@@ -56,10 +56,10 @@ router.post('/upload-image', uploadSingleImage, (req: express.Request, res: expr
 });
 
 // POST /api/news
-router.post('/', uploadNewsFiles, extractBase64Images, validateNews, createNews);
+router.post('/', uploadNewsFilesLarge, extractBase64Images, validateNews, createNews);
 
 // PUT /api/news/:id
-router.put('/:id', uploadNewsFiles, extractBase64Images, validateNews, updateNews);
+router.put('/:id', uploadNewsFilesLarge, extractBase64Images, validateNews, updateNews);
 
 // DELETE /api/news/:id
 router.delete('/:id', deleteNews);

@@ -49,9 +49,9 @@ app.use(cors({
   credentials: true
 }));
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Body parsing middleware - increased limits for rich news content with HTML and multiple images
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Logging
 if (process.env.NODE_ENV === 'development') {
@@ -92,7 +92,35 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
   if (error.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({
       success: false,
-      message: 'फाइल बहुत बड़ी है'
+      message: 'फाइल बहुत बड़ी है - छवियों के लिए अधिकतम 10MB और वीडियो के लिए अधिकतम 500MB अनुमत है'
+    });
+  }
+
+  if (error.code === 'LIMIT_FIELD_VALUE') {
+    return res.status(400).json({
+      success: false,
+      message: 'विवरण बहुत लंबा है - कृपया छोटा करें या कम छवियां जोड़ें'
+    });
+  }
+
+  if (error.code === 'LIMIT_FILE_COUNT') {
+    return res.status(400).json({
+      success: false,
+      message: 'बहुत सारी फाइलें अपलोड की गईं - अधिकतम 15 फाइलें अनुमत हैं'
+    });
+  }
+
+  if (error.code === 'LIMIT_FIELD_SIZE') {
+    return res.status(400).json({
+      success: false,
+      message: 'फॉर्म डेटा बहुत बड़ा है - विवरण छोटा करें'
+    });
+  }
+
+  if (error.name === 'MulterError') {
+    return res.status(400).json({
+      success: false,
+      message: 'फाइल अपलोड में त्रुटि: ' + error.message
     });
   }
 
