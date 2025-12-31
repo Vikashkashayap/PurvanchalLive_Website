@@ -55,7 +55,8 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
 export const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 2147483648 // 2GB limit (very high to allow large videos)
+    fileSize: 2147483648, // 2GB limit (very high to allow large videos)
+    fieldSize: 20971520   // 20MB limit for text fields (description, etc.)
   },
   fileFilter: fileFilter
 });
@@ -64,7 +65,8 @@ export const upload = multer({
 export const uploadImage = multer({
   storage: storage,
   limits: {
-    fileSize: 5242880 // 5MB limit for images
+    fileSize: 5242880, // 5MB limit for images
+    fieldSize: 20971520 // 20MB limit for text fields
   },
   fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedImageTypes = /jpeg|jpg|png|gif|webp/;
@@ -95,9 +97,56 @@ export const uploadVideo = upload.single('videoFile');
 // Multiple images upload (if needed)
 export const uploadMultiple = upload.array('images', 10);
 
-// Combined upload for news (image + video)
+// Combined upload for news (featured image + video + content images)
 export const uploadNewsFiles = upload.fields([
-  { name: 'image', maxCount: 1 },
+  { name: 'featuredImage', maxCount: 1 }, // Featured image (single)
+  { name: 'contentImages', maxCount: 10 }, // Content images (multiple, up to 10)
+  { name: 'videoFile', maxCount: 1 }
+]);
+
+// Production-ready news upload with higher limits for videos
+export const uploadNewsFilesLarge = multer({
+  storage: storage,
+  limits: {
+    fileSize: 524288000, // 500MB total limit (allows large videos)
+    fieldSize: 20971520, // 20MB for text fields (handles large HTML)
+    files: 15 // Maximum 15 files total (1 featured + 10 content + 1 video + buffer)
+  },
+  fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedImageTypes = /jpeg|jpg|png|gif|webp/;
+    const allowedVideoTypes = /mp4|avi|mov|wmv|flv|webm|mkv/;
+    const extname = path.extname(file.originalname).toLowerCase();
+    const mimetype = file.mimetype;
+
+    // Check based on field name
+    if (file.fieldname === 'featuredImage' || file.fieldname === 'image' || file.fieldname === 'contentImages') {
+      // Image files (including backward compatibility for 'image' field)
+      const extnameValid = allowedImageTypes.test(extname);
+      const mimetypeValid = allowedImageTypes.test(mimetype);
+
+      if (mimetypeValid && extnameValid) {
+        return cb(null, true);
+      } else {
+        cb(new Error('केवल छवि फाइलें अनुमत हैं (jpeg, jpg, png, gif, webp)'));
+      }
+    } else if (file.fieldname === 'videoFile') {
+      // Video files
+      const extnameValid = allowedVideoTypes.test(extname);
+      const mimetypeValid = mimetype.startsWith('video/');
+
+      if (mimetypeValid && extnameValid) {
+        return cb(null, true);
+      } else {
+        cb(new Error('केवल वीडियो फाइलें अनुमत हैं (mp4, avi, mov, wmv, flv, webm, mkv)'));
+      }
+    } else {
+      cb(new Error('अमान्य फाइल प्रकार'));
+    }
+  }
+}).fields([
+  { name: 'featuredImage', maxCount: 1 },
+  { name: 'image', maxCount: 1 }, // Backward compatibility - old field name
+  { name: 'contentImages', maxCount: 10 },
   { name: 'videoFile', maxCount: 1 }
 ]);
 

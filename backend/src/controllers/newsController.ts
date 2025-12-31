@@ -213,10 +213,23 @@ export const createNews = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    // Handle image upload
+    // Handle featured image upload (check both old 'image' and new 'featuredImage' field names)
     let imageUrl = '';
-    if (req.files && 'image' in req.files && req.files.image[0]) {
-      imageUrl = `/uploads/${req.files.image[0].filename}`;
+    if (req.files) {
+      // Check for new field name first, then fall back to old field name
+      const featuredImageFile = ('featuredImage' in req.files && req.files.featuredImage[0]) ?
+        req.files.featuredImage[0] :
+        (('image' in req.files && req.files.image[0]) ? req.files.image[0] : null);
+
+      if (featuredImageFile) {
+        imageUrl = `/uploads/${featuredImageFile.filename}`;
+      }
+    }
+
+    // Handle content images upload (multiple)
+    let contentImages: string[] = [];
+    if (req.files && 'contentImages' in req.files && req.files.contentImages.length > 0) {
+      contentImages = req.files.contentImages.map((file: Express.Multer.File) => `/uploads/${file.filename}`);
     }
 
     // Handle video file upload
@@ -225,15 +238,26 @@ export const createNews = async (req: AuthRequest, res: Response): Promise<void>
       videoFileUrl = `/uploads/${req.files.videoFile[0].filename}`;
     }
 
+    // Process description to inject content image URLs if needed
+    let processedDescription = description.trim();
+    if (contentImages.length > 0) {
+      // If description contains placeholders like {{image:0}}, {{image:1}}, etc., replace them
+      contentImages.forEach((imageUrl, index) => {
+        const placeholder = `{{image:${index}}}`;
+        processedDescription = processedDescription.replace(new RegExp(placeholder, 'g'), imageUrl);
+      });
+    }
+
     const news = new News({
       title: title.trim(),
       shortDescription: shortDescription ? shortDescription.trim() : '',
-      description: description.trim(),
+      description: processedDescription,
       category,
       slug: slug || undefined,
       videoUrl: videoUrl || '',
       videoFileUrl,
       imageUrl,
+      contentImages,
       isPublished: isPublished || false
     });
 
@@ -299,17 +323,38 @@ export const updateNews = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    // Handle image upload - remove old image if new one is uploaded
+    // Handle featured image upload - remove old image if new one is uploaded (support both field names)
     let imageUrl = news.imageUrl;
-    if (req.files && 'image' in req.files && req.files.image[0]) {
-      // Delete old image file
-      if (news.imageUrl) {
-        const oldImagePath = path.join(__dirname, '../../', news.imageUrl);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
+    if (req.files) {
+      const newImageFile = ('featuredImage' in req.files && req.files.featuredImage[0]) ?
+        req.files.featuredImage[0] :
+        (('image' in req.files && req.files.image[0]) ? req.files.image[0] : null);
+
+      if (newImageFile) {
+        // Delete old image file
+        if (news.imageUrl) {
+          const oldImagePath = path.join(__dirname, '../../', news.imageUrl);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
         }
+        imageUrl = `/uploads/${newImageFile.filename}`;
       }
-      imageUrl = `/uploads/${req.files.image[0].filename}`;
+    }
+
+    // Handle content images upload (multiple) - remove old images if new ones are uploaded
+    let contentImages = news.contentImages || [];
+    if (req.files && 'contentImages' in req.files && req.files.contentImages.length > 0) {
+      // Delete old content images
+      if (news.contentImages && news.contentImages.length > 0) {
+        news.contentImages.forEach((oldImageUrl: string) => {
+          const oldImagePath = path.join(__dirname, '../../', oldImageUrl);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
+        });
+      }
+      contentImages = req.files.contentImages.map((file: Express.Multer.File) => `/uploads/${file.filename}`);
     }
 
     // Handle video file upload - remove old video file if new one is uploaded
@@ -325,17 +370,28 @@ export const updateNews = async (req: AuthRequest, res: Response): Promise<void>
       videoFileUrl = `/uploads/${req.files.videoFile[0].filename}`;
     }
 
+    // Process description to inject content image URLs if needed
+    let processedDescription = description.trim();
+    if (contentImages.length > 0) {
+      // If description contains placeholders like {{image:0}}, {{image:1}}, etc., replace them
+      contentImages.forEach((imageUrl, index) => {
+        const placeholder = `{{image:${index}}}`;
+        processedDescription = processedDescription.replace(new RegExp(placeholder, 'g'), imageUrl);
+      });
+    }
+
     const updatedNews = await News.findByIdAndUpdate(
       id,
       {
         title: title.trim(),
         shortDescription: shortDescription ? shortDescription.trim() : '',
-        description: description.trim(),
+        description: processedDescription,
         category,
         slug: slug || undefined,
         videoUrl: videoUrl || '',
         videoFileUrl,
         imageUrl,
+        contentImages,
         isPublished: isPublished !== undefined ? isPublished : news.isPublished
       },
       { new: true, runValidators: true }
@@ -381,12 +437,22 @@ export const deleteNews = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    // Delete associated image file
+    // Delete associated featured image file
     if (news.imageUrl) {
       const imagePath = path.join(__dirname, '../../', news.imageUrl);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }
+    }
+
+    // Delete associated content images
+    if (news.contentImages && news.contentImages.length > 0) {
+      news.contentImages.forEach((imageUrl: string) => {
+        const imagePath = path.join(__dirname, '../../', imageUrl);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
+      });
     }
 
     // Delete associated video file

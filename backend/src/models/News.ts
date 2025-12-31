@@ -6,7 +6,8 @@ export interface INews extends Document {
   description: string; // Hindi description (rich text HTML for detailed content)
   category: string; // Hindi category like ग्राम समाचार, राजनीति, शिक्षा, मौसम
   slug?: string; // SEO-friendly URL slug
-  imageUrl?: string; // Path to uploaded image
+  imageUrl?: string; // Path to uploaded featured image
+  contentImages?: string[]; // Array of paths to uploaded content images
   videoUrl?: string; // YouTube/MP4 link or uploaded video file path
   videoFileUrl?: string; // Path to uploaded video file
   isPublished: boolean;
@@ -55,6 +56,10 @@ const NewsSchema: Schema = new Schema({
   imageUrl: {
     type: String,
     default: ''
+  },
+  contentImages: {
+    type: [String],
+    default: []
   },
   videoUrl: {
     type: String,
