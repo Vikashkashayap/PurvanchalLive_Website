@@ -1,45 +1,19 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { clearToken, marqueeAPI, type MarqueeContent } from '../services/api';
+import { clearToken } from '../services/api';
 import NewsLogo from '../assets/NewsLogo.png';
+import Marquee from './Marquee';
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [breakingNews, setBreakingNews] = useState<MarqueeContent[]>([]);
-  const [announcements, setAnnouncements] = useState<MarqueeContent[]>([]);
-  const [marqueeLoading, setMarqueeLoading] = useState(true);
 
   useEffect(() => {
     // Check if current route is admin
     setIsAdmin(location.pathname.startsWith('/admin'));
   }, [location.pathname]);
-
-  useEffect(() => {
-    // Fetch marquee content
-    const fetchMarqueeContent = async () => {
-      try {
-        setMarqueeLoading(true);
-        const [breakingData, announcementData] = await Promise.all([
-          marqueeAPI.getAll('breaking'),
-          marqueeAPI.getAll('announcement')
-        ]);
-        setBreakingNews(breakingData);
-        setAnnouncements(announcementData);
-      } catch (error) {
-        console.error('Error fetching marquee content:', error);
-        // Set default content if API fails
-        setBreakingNews([]);
-        setAnnouncements([]);
-      } finally {
-        setMarqueeLoading(false);
-      }
-    };
-
-    fetchMarqueeContent();
-  }, []);
 
   const handleLogout = () => {
     clearToken();
@@ -172,67 +146,7 @@ const Navbar = () => {
   return (
     <div>
       {/* News Marquee Banner */}
-      <div className="bg-gradient-to-r from-orange-600 to-orange-700 text-white overflow-hidden relative">
-        {/* Left to Right Marquee */}
-        <div className="relative w-full py-3">
-          <div className="animate-marquee-left whitespace-nowrap flex items-center">
-            <span className="text-lg font-bold mr-8 bg-red-600 px-4 py-2 rounded-lg animate-pulse mx-4">📰 ब्रेकिंग न्यूज</span>
-            {breakingNews.length > 0 ? (
-              <>
-                {breakingNews.map((item, index) => (
-                  <span key={`breaking-${index}`} className="mx-6">{item.content}</span>
-                ))}
-                {/* Duplicate for seamless loop */}
-                {breakingNews.map((item, index) => (
-                  <span key={`breaking-dup-${index}`} className="mx-6">{item.content}</span>
-                ))}
-              </>
-            ) : !marqueeLoading ? (
-              <>
-                <span className="mx-6">🌾 पीएम किसान सम्मान निधि की 15वीं किस्त जारी</span>
-                <span className="mx-6">🏛️ ग्राम पंचायत चुनाव 2025: नामांकन शुरू</span>
-                <span className="mx-6">💡 नई शिक्षा नीति: डिजिटल क्लासरूम</span>
-                <span className="mx-6">🏥 कोविड वैक्सीनेशन: मोबाइल टीमें</span>
-                <span className="mx-6">🚜 कृषि विभाग: सब्सिडी बीज उपलब्ध</span>
-                {/* Duplicate for seamless loop */}
-                <span className="mx-6">🌾 पीएम किसान सम्मान निधि की 15वीं किस्त जारी</span>
-                <span className="mx-6">🏛️ ग्राम पंचायत चुनाव 2025: नामांकन शुरू</span>
-                <span className="mx-6">💡 नई शिक्षा नीति: डिजिटल क्लासरूम</span>
-              </>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Right to Left Marquee */}
-        <div className="relative w-full py-3 border-t border-orange-500">
-          <div className="animate-marquee-right whitespace-nowrap flex items-center">
-            <span className="text-lg font-bold mr-8 bg-blue-600 px-4 py-2 rounded-lg animate-pulse mx-4">📢 महत्वपूर्ण सूचना</span>
-            {announcements.length > 0 ? (
-              <>
-                {announcements.map((item, index) => (
-                  <span key={`announcement-${index}`} className="mx-6">{item.content}</span>
-                ))}
-                {/* Duplicate for seamless loop */}
-                {announcements.map((item, index) => (
-                  <span key={`announcement-dup-${index}`} className="mx-6">{item.content}</span>
-                ))}
-              </>
-            ) : !marqueeLoading ? (
-              <>
-                <span className="mx-6">⚡ बिजली बिल: ऑनलाइन भुगतान पर 10% छूट</span>
-                <span className="mx-6">📚 ग्राम पुस्तकालय: नई किताबें पहुंचीं</span>
-                <span className="mx-6">🎪 सांस्कृतिक महोत्सव: कलाकारों का कार्यक्रम</span>
-                <span className="mx-6">🏃‍♂️ योग शिविर: स्वास्थ्य विभाग द्वारा निःशुल्क</span>
-                <span className="mx-6">💰 किसान सम्मान निधि: आधार अपडेट करें</span>
-                {/* Duplicate for seamless loop */}
-                <span className="mx-6">⚡ बिजली बिल: ऑनलाइन भुगतान पर 10% छूट</span>
-                <span className="mx-6">📚 ग्राम पुस्तकालय: नई किताबें पहुंचीं</span>
-                <span className="mx-6">🎪 सांस्कृतिक महोत्सव: कलाकारों का कार्यक्रम</span>
-              </>
-            ) : null}
-          </div>
-        </div>
-      </div>
+      <Marquee />
 
       {/* Original Navbar */}
       <nav className="bg-gradient-to-r from-orange-50 via-white to-orange-50 shadow-xl border-b border-orange-200">

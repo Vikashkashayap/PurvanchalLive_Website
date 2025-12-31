@@ -108,13 +108,13 @@ const Home = () => {
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <div className="text-center">
-            <div className="mb-3">
+            {/* <div className="mb-3">
               <img
                 src={NewsLogo}
                 alt="गांव समाचार"
                 className="h-40 w-auto mx-auto drop-shadow-lg"
               />
-            </div>
+            </div> */}
             <p className="text-sm md:text-lg opacity-95 leading-relaxed max-w-2xl mx-auto">
             पूर्वांचल की ताजा खबरें, आपके लिए - विश्वसनीय और ताज़ा जानकारी
             </p>
@@ -238,14 +238,14 @@ const Home = () => {
               className="h-16 w-auto mx-auto mb-6 opacity-80"
             />
             <p className="text-xl font-semibold mb-2">
-              गांव समाचार
+               पूर्वांचल समाचार
             </p>
             <p className="text-gray-400 mb-6 max-w-md mx-auto">
             पूर्वांचल की ताजा खबरें, आपके लिए - विश्वसनीय और ताज़ा जानकारी
             </p>
             <div className="border-t border-gray-700 pt-6">
               <p className="text-gray-400">
-                © {new Date().getFullYear()} गांव समाचार। सभी अधिकार सुरक्षित।
+                © {new Date().getFullYear()} पूर्वांचल समाचार। सभी अधिकार सुरक्षित।
               </p>
             </div>
           </div>
