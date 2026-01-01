@@ -40,7 +40,9 @@ const NewsForm = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [existingImageUrl, setExistingImageUrl] = useState<string>('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [existingVideoFileUrl, setExistingVideoFileUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(isEditing);
   const [error, setError] = useState<string | null>(null);
@@ -92,11 +94,20 @@ const NewsForm = () => {
         description: news.description || '', // Rich text HTML content
         category: news.category,
         videoUrl: news.videoUrl || '',
+        slug: news.slug || '',
         isPublished: news.isPublished,
       });
       setShortDescription(news.shortDescription || '');
+
+      // Load existing image if present
       if (news.imageUrl) {
         setImagePreview(`${getBackendBaseUrl()}${news.imageUrl}`);
+        setExistingImageUrl(news.imageUrl); // Track existing image for backend
+      }
+
+      // Load existing video information
+      if (news.videoFileUrl) {
+        setExistingVideoFileUrl(news.videoFileUrl); // Track existing video file for backend
       }
     } catch (err) {
       console.error('Error fetching news for edit:', err);
@@ -156,6 +167,44 @@ const NewsForm = () => {
     setVideoFile(file);
   };
 
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setExistingImageUrl(''); // Clear existing image reference
+    // Clear the file input
+    const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setFormData(prev => ({
+      ...prev,
+      videoUrl: '',
+    }));
+    setExistingVideoFileUrl(''); // Clear existing video file reference
+  };
+
+  const handleDelete = async () => {
+    if (!id || !window.confirm('Are you sure you want to delete this news? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await newsAPI.delete(id);
+      // Redirect to dashboard after successful deletion
+      window.location.href = '/admin/dashboard';
+    } catch (err: any) {
+      console.error('Error deleting news:', err);
+      setError(err.response?.data?.message || 'Error deleting news.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const validateForm = (): boolean => {
     if (!formData.title.trim()) {
       setError('Title is required');
@@ -199,9 +248,54 @@ const NewsForm = () => {
 
       if (imageFile) {
         submitFormData.append('image', imageFile);
+      } else if (isEditing && existingImageUrl && !imageFile) {
+        // Send flag to remove existing image
+        submitFormData.append('removeImage', 'true');
       }
 
-      await newsAPI.create(submitFormData);
+      // Handle video removal
+      if (isEditing && existingVideoFileUrl && !videoFile && (!formData.videoUrl || !formData.videoUrl.trim())) {
+        // Send flag to remove existing video file
+        submitFormData.append('removeVideoFile', 'true');
+      }
+
+      let response;
+      if (isEditing && id) {
+        response = await newsAPI.update(id, submitFormData);
+      } else {
+        response = await newsAPI.create(submitFormData);
+      }
+
+      // Update form state with the response data for editing
+      if (isEditing && response) {
+        const updatedNews = response;
+        setFormData({
+          title: updatedNews.title,
+          description: updatedNews.description || '',
+          category: updatedNews.category,
+          videoUrl: updatedNews.videoUrl || '',
+          slug: updatedNews.slug || '',
+          isPublished: updatedNews.isPublished,
+        });
+        setShortDescription(updatedNews.shortDescription || '');
+
+        // Update image preview if changed
+        if (updatedNews.imageUrl) {
+          setImagePreview(`${getBackendBaseUrl()}${updatedNews.imageUrl}`);
+          setExistingImageUrl(updatedNews.imageUrl);
+        } else {
+          setImagePreview('');
+          setExistingImageUrl('');
+        }
+
+        // Update video information if changed
+        if (updatedNews.videoFileUrl) {
+          setExistingVideoFileUrl(updatedNews.videoFileUrl);
+        } else {
+          setExistingVideoFileUrl('');
+        }
+      }
+
       setSuccess(true);
     } catch (err: any) {
       console.error('Error saving news:', err);
@@ -256,21 +350,24 @@ const NewsForm = () => {
               >
 Go to Dashboard
               </Link>
-              <button
-                onClick={() => {
-                  setSuccess(false);
-                  setFormData({
-                    title: '',
-                    description: '',
-                    category: 'ग्राम समाचार',
-                    videoUrl: '',
-                    isPublished: true,
-                  });
-                  setShortDescription('');
-                  setImageFile(null);
-                  setImagePreview('');
-                  setVideoFile(null);
-                }}
+                <button
+                  onClick={() => {
+                    setSuccess(false);
+                    setFormData({
+                      title: '',
+                      description: '',
+                      category: 'ग्राम समाचार',
+                      videoUrl: '',
+                      slug: '',
+                      isPublished: true,
+                    });
+                    setShortDescription('');
+                    setImageFile(null);
+                    setImagePreview('');
+                    setExistingImageUrl('');
+                    setVideoFile(null);
+                    setExistingVideoFileUrl('');
+                  }}
                 className="btn-secondary"
               >
 Add Another News
@@ -442,6 +539,7 @@ Use the toolbar to format text, insert images, or add YouTube videos
 Image Upload
                   </label>
                   <input
+                    id="image-upload"
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
@@ -450,11 +548,24 @@ Image Upload
                   />
                   {imagePreview && (
                     <div className="mt-4">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="max-w-xs max-h-48 object-cover rounded-lg border"
-                      />
+                      <div className="flex items-start space-x-4">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="max-w-xs max-h-48 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          disabled={loading}
+                        >
+                          Remove Image
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        {existingImageUrl ? 'Current image from news. Upload new image to replace.' : 'New image uploaded'}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -470,6 +581,8 @@ Video Upload
                     videoFile={videoFile}
                     onVideoFileChange={handleVideoFileChange}
                     disabled={loading}
+                    onRemove={handleRemoveVideo}
+                    existingVideoFileUrl={existingVideoFileUrl}
                   />
                 </div>
 
@@ -493,27 +606,49 @@ Publish this news
 
             {/* Submit Buttons - Only show when content field is visible */}
             {showContentField && (
-              <div className="flex justify-end space-x-4 pt-6 border-t">
-                <Link
-                  to="/admin/dashboard"
-                  className="btn-secondary"
-                >
-Cancel
-                </Link>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-Saving...
-                    </div>
-                  ) : (
-                    isEditing ? 'Update' : 'Save'
-                  )}
-                </button>
+              <div className="flex justify-between items-center pt-6 border-t">
+                {/* Delete button - only show when editing */}
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Deleting...
+                      </div>
+                    ) : (
+                      'Delete News'
+                    )}
+                  </button>
+                )}
+
+                {/* Cancel and Save buttons */}
+                <div className="flex space-x-4">
+                  <Link
+                    to="/admin/dashboard"
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </Link>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Saving...
+                      </div>
+                    ) : (
+                      isEditing ? 'Update' : 'Save'
+                    )}
+                  </button>
+                </div>
               </div>
             )}
           </form>

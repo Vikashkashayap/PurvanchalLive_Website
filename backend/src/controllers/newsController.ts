@@ -342,6 +342,17 @@ export const updateNews = async (req: AuthRequest, res: Response): Promise<void>
       }
     }
 
+    // Handle image removal if explicitly requested
+    if (req.body.removeImage === 'true') {
+      if (news.imageUrl) {
+        const oldImagePath = path.join(__dirname, '../../', news.imageUrl);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      imageUrl = '';
+    }
+
     // Handle content images upload (multiple) - remove old images if new ones are uploaded
     let contentImages = news.contentImages || [];
     if (req.files && 'contentImages' in req.files && req.files.contentImages.length > 0) {
@@ -368,6 +379,17 @@ export const updateNews = async (req: AuthRequest, res: Response): Promise<void>
         }
       }
       videoFileUrl = `/uploads/${req.files.videoFile[0].filename}`;
+    }
+
+    // Handle video file removal if explicitly requested
+    if (req.body.removeVideoFile === 'true') {
+      if (news.videoFileUrl) {
+        const oldVideoPath = path.join(__dirname, '../../', news.videoFileUrl);
+        if (fs.existsSync(oldVideoPath)) {
+          fs.unlinkSync(oldVideoPath);
+        }
+      }
+      videoFileUrl = '';
     }
 
     // Process description to inject content image URLs if needed
@@ -407,12 +429,8 @@ export const updateNews = async (req: AuthRequest, res: Response): Promise<void>
 
     res.status(200).json({
       success: true,
-      message: 'News updated successfully - title and description updated',
-      data: {
-        ...updatedNews.toObject(),
-        title: updatedNews.title,
-        description: updatedNews.description
-      }
+      message: 'News updated successfully',
+      data: updatedNews.toObject()
     });
 
   } catch (error) {
