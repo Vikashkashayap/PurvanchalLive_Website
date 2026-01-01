@@ -75,6 +75,33 @@ export interface MarqueeContent {
   updatedAt: string;
 }
 
+// API Response interfaces
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+interface NewsListResponse {
+  news: News[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+interface CategoryListResponse {
+  categories: Category[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
 // Marquee Content creation/update interface
 export interface MarqueeContentFormData {
   content: string;
@@ -194,7 +221,7 @@ export const newsAPI = {
     }
 
     try {
-      const data = await requestManager.request('/api/news', {
+      const response = await requestManager.request<ApiResponse<NewsListResponse>>('/api/news', {
         method: 'GET',
         params,
         headers: {
@@ -203,20 +230,12 @@ export const newsAPI = {
         }
       });
 
-      // Handle different response structures for better error resilience
-      if (data?.data?.news) {
-        return data.data.news;
-      }
-      // Fallback for different response structures
-      if (data?.news) {
-        return data.news;
-      }
-      // Direct array response
-      if (Array.isArray(data)) {
-        return data;
+      // Handle the properly typed response
+      if (response?.data?.news) {
+        return response.data.news;
       }
       // If no news data found, return empty array
-      console.warn('Unexpected API response structure:', data);
+      console.warn('Unexpected API response structure:', response);
       return [];
     } catch (error) {
       console.error('Error fetching news:', error);
@@ -266,7 +285,7 @@ export const marqueeAPI = {
     }
 
     try {
-      const data = await requestManager.request('/api/marquee', {
+      const response = await requestManager.request<ApiResponse<MarqueeContent[]>>('/api/marquee', {
         method: 'GET',
         params,
         headers: {
@@ -275,7 +294,7 @@ export const marqueeAPI = {
         }
       });
 
-      return data?.data || [];
+      return response?.data || [];
     } catch (error) {
       console.error('Error fetching marquee content:', error);
       // Return empty array on error
@@ -287,8 +306,8 @@ export const marqueeAPI = {
   getAllContent: async (): Promise<{ breaking: MarqueeContent[], announcements: MarqueeContent[] }> => {
     try {
       // Use request manager to fetch both types - this will deduplicate if called multiple times
-      const [breakingData, announcementData] = await Promise.all([
-        requestManager.request('/api/marquee', {
+      const [breakingResponse, announcementResponse] = await Promise.all([
+        requestManager.request<ApiResponse<MarqueeContent[]>>('/api/marquee', {
           method: 'GET',
           params: { type: 'breaking' },
           headers: {
@@ -296,7 +315,7 @@ export const marqueeAPI = {
             'Authorization': getToken() ? `Bearer ${getToken()}` : undefined,
           }
         }),
-        requestManager.request('/api/marquee', {
+        requestManager.request<ApiResponse<MarqueeContent[]>>('/api/marquee', {
           method: 'GET',
           params: { type: 'announcement' },
           headers: {
@@ -307,8 +326,8 @@ export const marqueeAPI = {
       ]);
 
       return {
-        breaking: breakingData?.data || [],
-        announcements: announcementData?.data || []
+        breaking: breakingResponse?.data || [],
+        announcements: announcementResponse?.data || []
       };
     } catch (error) {
       console.error('Error fetching marquee content:', error);
@@ -336,7 +355,7 @@ export const marqueeAPI = {
 export const categoryAPI = {
   getAll: async (): Promise<Category[]> => {
     try {
-      const data = await requestManager.request('/api/categories', {
+      const response = await requestManager.request<ApiResponse<CategoryListResponse>>('/api/categories', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -344,20 +363,12 @@ export const categoryAPI = {
         }
       });
 
-      // Handle different response structures for better error resilience
-      if (data?.data?.categories) {
-        return data.data.categories;
-      }
-      // Fallback for different response structures
-      if (data?.categories) {
-        return data.categories;
-      }
-      // Direct array response
-      if (Array.isArray(data)) {
-        return data;
+      // Handle the properly typed response
+      if (response?.data?.categories) {
+        return response.data.categories;
       }
       // If no categories data found, return empty array
-      console.warn('Unexpected API response structure:', data);
+      console.warn('Unexpected API response structure:', response);
       return [];
     } catch (error) {
       console.error('Error fetching categories:', error);
