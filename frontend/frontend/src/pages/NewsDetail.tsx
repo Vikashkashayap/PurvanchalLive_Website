@@ -43,13 +43,26 @@ const NewsDetail = () => {
     });
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">लोड हो रहा है...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error || !news) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-red-600">
-        {error || 'समाचार नहीं मिला'}
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-red-600 px-4">
+        <div className="text-center">
+          <div className="text-4xl sm:text-6xl mb-4">😞</div>
+          <p className="text-base sm:text-lg font-medium mb-4">{error || 'समाचार नहीं मिला'}</p>
+          <Link to="/" className="btn-primary touch-target inline-block">
+            मुखपृष्ठ पर जाएं
+          </Link>
+        </div>
       </div>
     );
   }
@@ -74,6 +87,32 @@ const NewsDetail = () => {
   const videoFileUrl = news.videoFileUrl
     ? getAbsoluteUrl(news.videoFileUrl)
     : undefined;
+
+  // Helper function to get image MIME type from URL
+  const getImageMimeType = (url: string): string => {
+    const extension = url.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'image/jpeg'; // fallback
+    }
+  };
+
+  // Helper function to validate if image exists and is accessible
+  const isValidImageUrl = (url: string): boolean => {
+    if (!url) return false;
+    // Basic validation - check if URL is properly formed and has valid extension
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    return validExtensions.some(ext => url.toLowerCase().includes(ext));
+  };
 
   /* ---------- SHARE ---------- */
 
@@ -112,15 +151,16 @@ const NewsDetail = () => {
         <meta property="article:published_time" content={news.createdAt} />
 
         {/* Priority: News thumbnail over company logo */}
-        {imageUrl ? (
+        {imageUrl && isValidImageUrl(imageUrl) ? (
           <>
             <meta property="og:image" content={imageUrl} />
             <meta property="og:image:width" content="1200" />
             <meta property="og:image:height" content="630" />
-            <meta property="og:image:type" content="image/jpeg" />
+            <meta property="og:image:type" content={getImageMimeType(imageUrl)} />
+            <meta property="og:image:alt" content={cleanTitle} />
           </>
         ) : (
-          // Fallback to company logo if no news image
+          // Fallback to company logo if no news image or invalid image
           <meta property="og:image" content={`${window.location.origin}/favicon.png`} />
         )}
 
@@ -129,65 +169,74 @@ const NewsDetail = () => {
         <meta name="twitter:site" content="@purvanchallive" />
         <meta name="twitter:title" content={cleanTitle} />
         <meta name="twitter:description" content={cleanDescription} />
-        {imageUrl && <meta name="twitter:image" content={imageUrl} />}
-        {imageUrl && <meta name="twitter:image:alt" content={cleanTitle} />}
+        {imageUrl && isValidImageUrl(imageUrl) && <meta name="twitter:image" content={imageUrl} />}
+        {imageUrl && isValidImageUrl(imageUrl) && <meta name="twitter:image:alt" content={cleanTitle} />}
       </Helmet>
 
       {/* ---------- PAGE ---------- */}
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto px-4 py-4 sm:py-8">
 
           {/* Breadcrumb */}
-          <nav className="mb-4 text-sm text-gray-600">
-            <Link to="/" className="text-blue-600">मुखपृष्ठ</Link> › {news.category}
+          <nav className="mb-3 sm:mb-4 text-xs sm:text-sm text-gray-600">
+            <Link to="/" className="text-blue-600 hover:underline">मुखपृष्ठ</Link> › <span className="text-gray-500">{news.category}</span>
           </nav>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold mb-4">{cleanTitle}</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 leading-tight">{cleanTitle}</h1>
 
           {/* Short desc */}
           {news.shortDescription && (
-            <p className="italic text-gray-700 border-l-4 border-blue-500 pl-4 mb-4">
+            <p className="italic text-gray-700 border-l-4 border-blue-500 pl-3 sm:pl-4 mb-3 sm:mb-4 text-sm sm:text-base">
               {stripHtml(news.shortDescription)}
             </p>
           )}
 
-          <p className="text-gray-500 mb-6">
+          <p className="text-gray-500 mb-4 sm:mb-6 text-sm sm:text-base">
             प्रकाशित: {formatDate(news.createdAt)}
           </p>
 
           {/* Share */}
-          <div className="flex gap-3 mb-6">
-            <button onClick={shareOnWhatsApp} className="bg-green-600 text-white px-4 py-2 rounded">
-              WhatsApp
+          <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <button onClick={shareOnWhatsApp} className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-colors touch-target flex-1 sm:flex-none">
+              📱 WhatsApp
             </button>
-            <button onClick={shareOnFacebook} className="bg-blue-600 text-white px-4 py-2 rounded">
-              Facebook
+            <button onClick={shareOnFacebook} className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-colors touch-target flex-1 sm:flex-none">
+              📘 Facebook
             </button>
-            <button onClick={copyLink} className="bg-gray-600 text-white px-4 py-2 rounded">
-              लिंक कॉपी करें
+            <button onClick={copyLink} className="bg-gray-600 hover:bg-gray-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-colors touch-target flex-1 sm:flex-none">
+              🔗 कॉपी करें
             </button>
           </div>
 
           {/* Image */}
           {imageUrl && (
-            <img
-              src={imageUrl}
-              alt={cleanTitle}
-              className="w-full rounded-lg mb-6"
-            />
+            <div className="mb-4 sm:mb-6">
+              <img
+                src={imageUrl}
+                alt={cleanTitle}
+                className="w-full rounded-lg shadow-sm"
+                loading="lazy"
+              />
+            </div>
           )}
+
+          {/* Content */}
+          <article
+            className="prose max-w-none bg-white p-4 sm:p-6 rounded-lg shadow-sm"
+            dangerouslySetInnerHTML={{ __html: news.description }}
+          />
 
           {/* Video */}
           {(news.videoUrl || videoFileUrl) && (
-            <div className="mb-6">
+            <div className="mt-4 sm:mt-6">
               {news.videoUrl ? (
                 // YouTube or external video URL
-                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <div className="relative w-full bg-gray-200 rounded-lg overflow-hidden" style={{ paddingBottom: '56.25%' }}>
                   <iframe
                     src={news.videoUrl}
                     title={cleanTitle}
-                    className="absolute top-0 left-0 w-full h-full rounded-lg"
+                    className="absolute top-0 left-0 w-full h-full"
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -197,8 +246,9 @@ const NewsDetail = () => {
                 // Uploaded video file
                 <video
                   controls
-                  className="w-full rounded-lg max-h-96"
+                  className="w-full rounded-lg shadow-sm max-h-64 sm:max-h-96"
                   poster={imageUrl} // Use the news image as poster if available
+                  preload="metadata"
                 >
                   <source src={videoFileUrl} type="video/mp4" />
                   <source src={videoFileUrl} type="video/avi" />
@@ -213,15 +263,12 @@ const NewsDetail = () => {
             </div>
           )}
 
-          {/* Content */}
-          <article
-            className="prose max-w-none bg-white p-6 rounded shadow"
-            dangerouslySetInnerHTML={{ __html: news.description }}
-          />
-
-          <div className="mt-8 text-center">
-            <Link to="/" className="text-blue-600">
-              ← और समाचार देखें
+          <div className="mt-6 sm:mt-8 text-center">
+            <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium text-sm sm:text-base py-2 px-4 rounded-lg hover:bg-blue-50 transition-colors touch-target">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              और समाचार देखें
             </Link>
           </div>
         </div>

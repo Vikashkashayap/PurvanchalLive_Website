@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -26,15 +26,21 @@ const preloadCriticalComponents = () => {
 preloadCriticalComponents();
 
 function App() {
+  const [selectedCategory, setSelectedCategory] = useState<string>('सभी');
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+  };
+
   return (
     <HelmetProvider>
       <Router>
         <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        <Navbar selectedCategory={selectedCategory} onCategoryChange={handleCategoryChange} />
         <Suspense fallback={<LoadingSpinner message="Loading page..." />}>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Home selectedCategory={selectedCategory} />} />
             <Route path="/news/:slug" element={<NewsDetail />} />
 
             {/* Admin Routes */}

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { requestManager } from './requestManager';
 
 // News interface matching backend model
 export interface News {
@@ -191,22 +192,37 @@ export const newsAPI = {
     if (category) {
       params.category = category;
     }
-    const response = await api.get('/news', { params });
-    // Handle different response structures for better error resilience
-    if (response.data?.data?.news) {
-      return response.data.data.news;
+
+    try {
+      const data = await requestManager.request('/api/news', {
+        method: 'GET',
+        params,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': getToken() ? `Bearer ${getToken()}` : undefined,
+        }
+      });
+
+      // Handle different response structures for better error resilience
+      if (data?.data?.news) {
+        return data.data.news;
+      }
+      // Fallback for different response structures
+      if (data?.news) {
+        return data.news;
+      }
+      // Direct array response
+      if (Array.isArray(data)) {
+        return data;
+      }
+      // If no news data found, return empty array
+      console.warn('Unexpected API response structure:', data);
+      return [];
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      // Return empty array on error instead of throwing
+      return [];
     }
-    // Fallback for different response structures
-    if (response.data?.news) {
-      return response.data.news;
-    }
-    // Direct array response
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    // If no news data found, return empty array
-    console.warn('Unexpected API response structure:', response.data);
-    return [];
   },
 
   getById: async (id: string): Promise<News> => {
@@ -248,8 +264,57 @@ export const marqueeAPI = {
     if (type) {
       params.type = type;
     }
-    const response = await api.get('/marquee', { params });
-    return response.data.data || [];
+
+    try {
+      const data = await requestManager.request('/api/marquee', {
+        method: 'GET',
+        params,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': getToken() ? `Bearer ${getToken()}` : undefined,
+        }
+      });
+
+      return data?.data || [];
+    } catch (error) {
+      console.error('Error fetching marquee content:', error);
+      // Return empty array on error
+      return [];
+    }
+  },
+
+  // Helper method to get both breaking and announcement content efficiently
+  getAllContent: async (): Promise<{ breaking: MarqueeContent[], announcements: MarqueeContent[] }> => {
+    try {
+      // Use request manager to fetch both types - this will deduplicate if called multiple times
+      const [breakingData, announcementData] = await Promise.all([
+        requestManager.request('/api/marquee', {
+          method: 'GET',
+          params: { type: 'breaking' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': getToken() ? `Bearer ${getToken()}` : undefined,
+          }
+        }),
+        requestManager.request('/api/marquee', {
+          method: 'GET',
+          params: { type: 'announcement' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': getToken() ? `Bearer ${getToken()}` : undefined,
+          }
+        })
+      ]);
+
+      return {
+        breaking: breakingData?.data || [],
+        announcements: announcementData?.data || []
+      };
+    } catch (error) {
+      console.error('Error fetching marquee content:', error);
+      // Return empty arrays on error
+      return { breaking: [], announcements: [] };
+    }
   },
 
   create: async (data: MarqueeContentFormData): Promise<MarqueeContent> => {
@@ -270,22 +335,44 @@ export const marqueeAPI = {
 // Category API calls
 export const categoryAPI = {
   getAll: async (): Promise<Category[]> => {
-    const response = await api.get('/categories');
-    // Handle different response structures for better error resilience
-    if (response.data?.data?.categories) {
-      return response.data.data.categories;
+    try {
+      const data = await requestManager.request('/api/categories', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': getToken() ? `Bearer ${getToken()}` : undefined,
+        }
+      });
+
+      // Handle different response structures for better error resilience
+      if (data?.data?.categories) {
+        return data.data.categories;
+      }
+      // Fallback for different response structures
+      if (data?.categories) {
+        return data.categories;
+      }
+      // Direct array response
+      if (Array.isArray(data)) {
+        return data;
+      }
+      // If no categories data found, return empty array
+      console.warn('Unexpected API response structure:', data);
+      return [];
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      // Return fallback categories on error
+      return [
+        { _id: '1', name: 'ग्राम समाचार', description: '', createdAt: '', updatedAt: '' },
+        { _id: '2', name: 'राजनीति', description: '', createdAt: '', updatedAt: '' },
+        { _id: '3', name: 'शिक्षा', description: '', createdAt: '', updatedAt: '' },
+        { _id: '4', name: 'मौसम', description: '', createdAt: '', updatedAt: '' },
+        { _id: '5', name: 'स्वास्थ्य', description: '', createdAt: '', updatedAt: '' },
+        { _id: '6', name: 'कृषि', description: '', createdAt: '', updatedAt: '' },
+        { _id: '7', name: 'मनोरंजन', description: '', createdAt: '', updatedAt: '' },
+        { _id: '8', name: 'अन्य', description: '', createdAt: '', updatedAt: '' },
+      ];
     }
-    // Fallback for different response structures
-    if (response.data?.categories) {
-      return response.data.categories;
-    }
-    // Direct array response
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    // If no categories data found, return empty array
-    console.warn('Unexpected API response structure:', response.data);
-    return [];
   },
 
   getById: async (id: string): Promise<Category> => {
