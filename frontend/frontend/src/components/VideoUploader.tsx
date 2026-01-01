@@ -6,6 +6,8 @@ interface VideoUploaderProps {
   videoFile?: File | null;
   onVideoFileChange: (file: File | null) => void;
   disabled?: boolean;
+  onRemove?: () => void;
+  existingVideoFileUrl?: string;
 }
 
 const VideoUploader: React.FC<VideoUploaderProps> = ({
@@ -14,6 +16,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   videoFile,
   onVideoFileChange,
   disabled = false,
+  onRemove,
+  existingVideoFileUrl,
 }) => {
   const [videoPreview, setVideoPreview] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -178,13 +182,27 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       {renderVideoPreview()}
 
       {/* Current Selection Info */}
-      {(videoUrl || videoFile) && (
-        <div className="text-sm text-gray-600">
-          {videoUrl ? (
-            <p>✅ YouTube लिंक: {videoUrl}</p>
-          ) : videoFile ? (
-            <p>✅ फाइल: {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(2)} MB)</p>
-          ) : null}
+      {(videoUrl || videoFile || existingVideoFileUrl) && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {videoUrl ? (
+              <p>✅ YouTube लिंक: {videoUrl}</p>
+            ) : videoFile ? (
+              <p>✅ नई फाइल: {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(2)} MB)</p>
+            ) : existingVideoFileUrl ? (
+              <p>✅ मौजूदा वीडियो फाइल</p>
+            ) : null}
+          </div>
+          {onRemove && (videoUrl || videoFile || existingVideoFileUrl) && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
+              disabled={disabled}
+            >
+              Remove Video
+            </button>
+          )}
         </div>
       )}
     </div>
