@@ -14,6 +14,7 @@ import authRoutes from './routes/auth';
 import newsRoutes from './routes/news';
 import categoryRoutes from './routes/categories';
 import marqueeRoutes from './routes/marquee';
+import newsPreviewRoute from './routes/newsPreview';
 
 const app = express();
 
@@ -108,6 +109,9 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/news', publicLimiter, newsRoutes);
 app.use('/api/categories', publicLimiter, categoryRoutes);
 app.use('/api/marquee', publicLimiter, marqueeRoutes);
+
+// Social preview bot fallback: dynamic meta tags for news links
+app.use(newsPreviewRoute);
 
 // Health check route - public access with moderate limiting
 app.get('/api/health', publicLimiter, (req, res) => {
