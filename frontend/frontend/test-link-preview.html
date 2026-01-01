@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Preview Tester - Purvanchal Live</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .test-section h2 {
+            color: #555;
+            margin-top: 0;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #25D366;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #128C7E;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .meta-preview {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Link Preview Tester</h1>
+        
+        <div class="test-section">
+            <h2>1. Test Your News Article URL</h2>
+            <input type="text" id="newsUrl" placeholder="Enter news article URL (e.g., http://localhost:5174/news/your-slug)" value="">
+            <button onclick="testUrl()">Test URL</button>
+            <button onclick="fetchMetaTags()">Fetch Meta Tags</button>
+            
+            <div class="info">
+                <strong>Instructions:</strong><br>
+                1. Enter your news article URL above<br>
+                2. Click "Fetch Meta Tags" to see the Open Graph tags<br>
+                3. Use the test buttons below to verify on different platforms
+            </div>
+            
+            <div id="metaPreview" class="meta-preview" style="display:none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>2. Test on Social Platforms</h2>
+            <button onclick="testWhatsApp()">📱 Test on WhatsApp</button>
+            <button onclick="testFacebook()">📘 Test on Facebook</button>
+            <button onclick="testTwitter()">🐦 Test on Twitter</button>
+            <button onclick="testLinkedIn()">💼 Test on LinkedIn</button>
+            
+            <div class="info">
+                <strong>Note:</strong> These will open the sharing dialogs. The preview may take a few seconds to load.
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>3. Online Validators</h2>
+            <button onclick="openValidator('facebook')">Facebook Sharing Debugger</button>
+            <button onclick="openValidator('twitter')">Twitter Card Validator</button>
+            <button onclick="openValidator('linkedin')">LinkedIn Post Inspector</button>
+            
+            <div class="info">
+                <strong>Tip:</strong> Use these validators to see exactly how your link will appear. 
+                If the image doesn't show, check that:<br>
+                • Image URL is absolute (starts with http:// or https://)<br>
+                • Image is publicly accessible (no authentication required)<br>
+                • Image is at least 300x200 pixels (1200x630 recommended)
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getUrl() {
+            const input = document.getElementById('newsUrl');
+            return input.value.trim() || window.location.href;
+        }
+
+        function testUrl() {
+            const url = getUrl();
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            window.open(url, '_blank');
+        }
+
+        async function fetchMetaTags() {
+            const url = getUrl();
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            try {
+                // Use a CORS proxy or fetch from same origin
+                const response = await fetch(url);
+                const html = await response.text();
+                
+                // Parse meta tags
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const metaTags = [];
+                const ogTags = doc.querySelectorAll('meta[property^="og:"]');
+                const twitterTags = doc.querySelectorAll('meta[name^="twitter:"]');
+                
+                ogTags.forEach(tag => {
+                    metaTags.push(`${tag.getAttribute('property')}: ${tag.getAttribute('content')}`);
+                });
+                
+                twitterTags.forEach(tag => {
+                    metaTags.push(`${tag.getAttribute('name')}: ${tag.getAttribute('content')}`);
+                });
+                
+                const preview = document.getElementById('metaPreview');
+                if (metaTags.length > 0) {
+                    preview.innerHTML = '<strong>Found Meta Tags:</strong><br><br>' + metaTags.join('<br>');
+                    preview.style.display = 'block';
+                } else {
+                    preview.innerHTML = '<strong>No Open Graph or Twitter Card tags found!</strong><br>Make sure the page is loaded and meta tags are present.';
+                    preview.style.display = 'block';
+                }
+            } catch (error) {
+                alert('Error fetching meta tags. Make sure the URL is accessible and CORS is enabled.');
+                console.error(error);
+            }
+        }
+
+        function testWhatsApp() {
+            const url = getUrl();
+            window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank');
+        }
+
+        function testFacebook() {
+            const url = getUrl();
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+        }
+
+        function testTwitter() {
+            const url = getUrl();
+            window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`, '_blank');
+        }
+
+        function testLinkedIn() {
+            const url = getUrl();
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
+        }
+
+        function openValidator(platform) {
+            const url = getUrl();
+            const validators = {
+                facebook: `https://developers.facebook.com/tools/debug/?q=${encodeURIComponent(url)}`,
+                twitter: `https://cards-dev.twitter.com/validator?url=${encodeURIComponent(url)}`,
+                linkedin: `https://www.linkedin.com/post-inspector/inspect/${encodeURIComponent(url)}`
+            };
+            window.open(validators[platform], '_blank');
+        }
+
+        // Auto-fill current URL if on a news page
+        if (window.location.pathname.includes('/news/')) {
+            document.getElementById('newsUrl').value = window.location.href;
+        }
+    </script>
+</body>
+</html>
+

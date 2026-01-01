@@ -84,8 +84,24 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Static file serving for uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Static file serving for uploads with proper headers for social media crawlers
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+  setHeaders: (res, path) => {
+    // Set proper content-type for images
+    if (path.match(/\.(jpg|jpeg)$/i)) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (path.match(/\.png$/i)) {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (path.match(/\.gif$/i)) {
+      res.setHeader('Content-Type', 'image/gif');
+    } else if (path.match(/\.webp$/i)) {
+      res.setHeader('Content-Type', 'image/webp');
+    }
+    // Allow cross-origin access for social media crawlers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+}));
 
 // Routes with appropriate rate limiting
 app.use('/api/auth', authLimiter, authRoutes);

@@ -78,9 +78,14 @@ const NewsDetail = () => {
 
   // For social sharing, we need absolute URLs
   const getAbsoluteUrl = (relativePath: string) => {
-    return `${window.location.origin}${relativePath}`;
+    // Ensure the path starts with / if it doesn't already
+    const path = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+    // Remove any double slashes
+    const cleanPath = path.replace(/\/+/g, '/');
+    return `${window.location.origin}${cleanPath}`;
   };
 
+  // Ensure image URL is properly formatted for social sharing
   const imageUrl = news.imageUrl
     ? getAbsoluteUrl(news.imageUrl)
     : undefined;
@@ -114,13 +119,6 @@ const NewsDetail = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const shareOnFacebook = () => {
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(newsUrl)}`,
-      '_blank'
-    );
-  };
-
   const copyLink = () => {
     navigator.clipboard.writeText(newsUrl);
     alert('लिंक कॉपी हो गई है!');
@@ -139,6 +137,7 @@ const NewsDetail = () => {
         <meta property="og:title" content={cleanTitle} />
         <meta property="og:description" content={cleanDescription} />
         <meta property="og:url" content={newsUrl} />
+        <meta property="og:locale" content="hi_IN" />
         <meta property="article:author" content="Purvanchal Live" />
         <meta property="article:section" content={news.category} />
         <meta property="article:published_time" content={news.createdAt} />
@@ -147,6 +146,7 @@ const NewsDetail = () => {
         {imageUrl ? (
           <>
             <meta property="og:image" content={imageUrl} />
+            <meta property="og:image:secure_url" content={imageUrl} />
             <meta property="og:image:width" content="1200" />
             <meta property="og:image:height" content="630" />
             <meta property="og:image:type" content={getImageMimeType(imageUrl)} />
@@ -154,7 +154,10 @@ const NewsDetail = () => {
           </>
         ) : (
           // Fallback to company logo only if no news image at all
-          <meta property="og:image" content={`${window.location.origin}/favicon.png`} />
+          <>
+            <meta property="og:image" content={`${window.location.origin}/favicon.png`} />
+            <meta property="og:image:secure_url" content={`${window.location.origin}/favicon.png`} />
+          </>
         )}
 
         {/* Twitter Cards - Large image for better engagement */}
@@ -193,9 +196,6 @@ const NewsDetail = () => {
           <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6">
             <button onClick={shareOnWhatsApp} className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-colors touch-target flex-1 sm:flex-none">
               📱 WhatsApp
-            </button>
-            <button onClick={shareOnFacebook} className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-colors touch-target flex-1 sm:flex-none">
-              📘 Facebook
             </button>
             <button onClick={copyLink} className="bg-gray-600 hover:bg-gray-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-colors touch-target flex-1 sm:flex-none">
               🔗 कॉपी करें

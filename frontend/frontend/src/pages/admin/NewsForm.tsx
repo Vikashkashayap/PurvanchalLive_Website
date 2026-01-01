@@ -188,17 +188,15 @@ const NewsForm = () => {
   };
 
   const handleDelete = async () => {
-    if (!id || !window.confirm('Are you sure you want to delete this news? This action cannot be undone.')) {
+    if (!id || loading) return;
+    if (!window.confirm('Are you sure you want to delete this news? This action cannot be undone.')) {
       return;
     }
-
+    setLoading(true);
     try {
-      setLoading(true);
       await newsAPI.delete(id);
-      // Redirect to dashboard after successful deletion
-      window.location.href = '/admin/dashboard';
+      window.location.href = '/admin/dashboard?refresh=true';
     } catch (err: any) {
-      console.error('Error deleting news:', err);
       setError(err.response?.data?.message || 'Error deleting news.');
     } finally {
       setLoading(false);
@@ -216,6 +214,10 @@ const NewsForm = () => {
     }
     if (!formData.category) {
       setError('Please select a category');
+      return false;
+    }
+    if (!formData.slug || !formData.slug.trim()) {
+      setError('Slug cannot be empty.');
       return false;
     }
     return true;

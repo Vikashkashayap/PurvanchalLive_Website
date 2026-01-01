@@ -90,17 +90,16 @@ const Dashboard = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (deletingId) return;
     if (!window.confirm('Are you sure you want to delete this news? This action cannot be undone.')) {
       return;
     }
-
+    setDeletingId(id);
     try {
-      setDeletingId(id);
       await newsAPI.delete(id);
       setNews(prev => prev.filter(item => item._id !== id));
-    } catch (err) {
-      console.error('Error deleting news:', err);
-      alert('Error deleting news.');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error deleting news.');
     } finally {
       setDeletingId(null);
     }
