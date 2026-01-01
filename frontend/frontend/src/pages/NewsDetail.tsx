@@ -106,13 +106,6 @@ const NewsDetail = () => {
     }
   };
 
-  // Helper function to validate if image exists and is accessible
-  const isValidImageUrl = (url: string): boolean => {
-    if (!url) return false;
-    // Basic validation - check if URL is properly formed and has valid extension
-    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    return validExtensions.some(ext => url.toLowerCase().includes(ext));
-  };
 
   /* ---------- SHARE ---------- */
 
@@ -150,8 +143,8 @@ const NewsDetail = () => {
         <meta property="article:section" content={news.category} />
         <meta property="article:published_time" content={news.createdAt} />
 
-        {/* Priority: News thumbnail over company logo */}
-        {imageUrl && isValidImageUrl(imageUrl) ? (
+        {/* News thumbnail - always try to use news image */}
+        {imageUrl ? (
           <>
             <meta property="og:image" content={imageUrl} />
             <meta property="og:image:width" content="1200" />
@@ -160,7 +153,7 @@ const NewsDetail = () => {
             <meta property="og:image:alt" content={cleanTitle} />
           </>
         ) : (
-          // Fallback to company logo if no news image or invalid image
+          // Fallback to company logo only if no news image at all
           <meta property="og:image" content={`${window.location.origin}/favicon.png`} />
         )}
 
@@ -169,8 +162,8 @@ const NewsDetail = () => {
         <meta name="twitter:site" content="@purvanchallive" />
         <meta name="twitter:title" content={cleanTitle} />
         <meta name="twitter:description" content={cleanDescription} />
-        {imageUrl && isValidImageUrl(imageUrl) && <meta name="twitter:image" content={imageUrl} />}
-        {imageUrl && isValidImageUrl(imageUrl) && <meta name="twitter:image:alt" content={cleanTitle} />}
+        {imageUrl && <meta name="twitter:image" content={imageUrl} />}
+        {imageUrl && <meta name="twitter:image:alt" content={cleanTitle} />}
       </Helmet>
 
       {/* ---------- PAGE ---------- */}
