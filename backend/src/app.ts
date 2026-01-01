@@ -17,6 +17,9 @@ import marqueeRoutes from './routes/marquee';
 
 const app = express();
 
+// Trust proxy for rate limiting behind Nginx
+app.set("trust proxy", 1);
+
 // Connect to MongoDB
 connectDB();
 
@@ -25,16 +28,39 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// Rate limiting
-const limiter = rateLimit({
+// Rate limiting configurations - applied per route, not globally
+const rateLimitMessage = {
+  success: false,
+  message: 'बहुत सारे अनुरोध, कृपया बाद में प्रयास करें'
+};
+
+// Public read APIs - very high limit (practically unlimited for news reading)
+const publicLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: 'बहुत सारे अनुरोध, कृपया बाद में प्रयास करें'
-  }
+  max: 10000, // Very high limit for public news reading
+  message: rateLimitMessage
 });
-app.use(limiter);
+
+// Admin APIs - moderate limit for dashboard operations
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // 500 requests per 15 minutes for admin operations
+  message: rateLimitMessage
+});
+
+// Auth APIs - strict limit for security
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per 15 minutes for auth operations
+  message: rateLimitMessage
+});
+
+// Heavy/costly APIs - very strict limit for uploads and expensive operations
+const heavyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 requests per hour for heavy operations
+  message: rateLimitMessage
+});
 
 // CORS configuration
 const allowedOrigins = process.env.NODE_ENV === 'production'
@@ -61,14 +87,14 @@ if (process.env.NODE_ENV === 'development') {
 // Static file serving for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/news', newsRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/marquee', marqueeRoutes);
+// Routes with appropriate rate limiting
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/news', publicLimiter, newsRoutes);
+app.use('/api/categories', publicLimiter, categoryRoutes);
+app.use('/api/marquee', publicLimiter, marqueeRoutes);
 
-// Health check route
-app.get('/api/health', (req, res) => {
+// Health check route - public access with moderate limiting
+app.get('/api/health', publicLimiter, (req, res) => {
   res.status(200).json({
     success: true,
     message: 'सर्वर चल रहा है',
