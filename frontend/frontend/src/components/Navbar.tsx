@@ -4,6 +4,15 @@ import { clearToken, type Category, categoryAPI } from '../services/api';
 import NewsLogo from '../assets/NewsLogo.png';
 import Marquee from './Marquee';
 
+// Body padding styles for fixed navbar
+const bodyPaddingStyle = `
+  .navbar-fixed-admin body { padding-top: 6rem; }
+  .navbar-fixed-public body { padding-top: 5rem; }
+  @media (min-width: 640px) {
+    .navbar-fixed-public body { padding-top: 6rem; }
+  }
+`;
+
 interface NavbarProps {
   selectedCategory?: string;
   onCategoryChange?: (category: string) => void;
@@ -15,6 +24,24 @@ const Navbar = ({ selectedCategory = 'सभी', onCategoryChange }: NavbarProp
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Apply body padding class when navbar is fixed
+  useEffect(() => {
+    const bodyClass = isAdmin
+      ? (isScrolled ? 'navbar-fixed-admin' : '')
+      : (isScrolled ? 'navbar-fixed-public' : '');
+
+    if (isScrolled) {
+      document.body.classList.add(bodyClass.replace('navbar-fixed-', ''));
+    } else {
+      document.body.classList.remove('navbar-fixed-admin', 'navbar-fixed-public');
+    }
+
+    return () => {
+      document.body.classList.remove('navbar-fixed-admin', 'navbar-fixed-public');
+    };
+  }, [isScrolled, isAdmin]);
 
   useEffect(() => {
     // Check if current route is admin
@@ -25,6 +52,24 @@ const Navbar = ({ selectedCategory = 'सभी', onCategoryChange }: NavbarProp
       fetchCategories();
     }
   }, [location.pathname, isAdmin]);
+
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const scrollTop = window.scrollY;
+          setIsScrolled(scrollTop > 50); // Fix navbar after scrolling 50px
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const fetchCategories = async () => {
     try {
@@ -63,7 +108,11 @@ const Navbar = ({ selectedCategory = 'सभी', onCategoryChange }: NavbarProp
 
   if (isAdmin) {
     return (
-      <nav className="bg-linear-to-r from-orange-50 via-white to-orange-50 shadow-xl border-b border-orange-200">
+      <>
+        <style dangerouslySetInnerHTML={{ __html: bodyPaddingStyle }} />
+        <nav className={`bg-linear-to-r from-orange-50 via-white to-orange-50 shadow-xl border-b border-orange-200 transition-all duration-300 ${
+          isScrolled ? 'fixed top-0 left-0 right-0 z-50 shadow-2xl' : ''
+        }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-24">
             <div className="flex items-center">
@@ -133,8 +182,8 @@ const Navbar = ({ selectedCategory = 'सभी', onCategoryChange }: NavbarProp
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-2 sm:px-3 bg-linear-to-b from-orange-50 to-white border-t border-orange-200 shadow-lg">
+          <div className={`md:hidden ${isScrolled ? 'fixed top-24 left-0 right-0 z-40' : 'relative'}`}>
+            <div className={`px-2 pt-2 pb-3 space-y-2 sm:px-3 bg-linear-to-b from-orange-50 to-white border-t border-orange-200 shadow-lg ${isScrolled ? 'shadow-2xl' : ''}`}>
               <Link
                 to="/admin/dashboard"
                 className="block px-4 py-3 rounded-xl text-base font-medium text-gray-700 hover:bg-orange-100 transition-all duration-300 hover:scale-105"
@@ -176,17 +225,24 @@ const Navbar = ({ selectedCategory = 'सभी', onCategoryChange }: NavbarProp
           </div>
         )}
       </nav>
+      </>
     );
   }
 
   // Public navbar with news marquee
   return (
-    <div>
-      {/* News Marquee Banner */}
-      <Marquee />
+    <>
+      <style dangerouslySetInnerHTML={{ __html: bodyPaddingStyle }} />
+      <div className="relative">
+      {/* News Marquee Banner - Always visible, just adjust positioning */}
+      <div className={`transition-all duration-300 ${isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <Marquee />
+      </div>
 
       {/* Original Navbar */}
-      <nav className="bg-linear-to-r from-orange-50 via-white to-orange-50 shadow-xl border-b border-orange-200">
+      <nav className={`bg-linear-to-r from-orange-50 via-white to-orange-50 shadow-xl border-b border-orange-200 transition-all duration-300 ${
+        isScrolled ? 'fixed top-0 left-0 right-0 z-50 shadow-2xl' : ''
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 sm:h-24">
             <div className="flex items-center">
@@ -271,8 +327,8 @@ const Navbar = ({ selectedCategory = 'सभी', onCategoryChange }: NavbarProp
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-2 sm:px-3 bg-linear-to-b from-orange-50 to-white border-t border-orange-200 shadow-lg">
+          <div className={`md:hidden ${isScrolled ? 'fixed top-20 sm:top-24 left-0 right-0 z-40' : 'relative'}`}>
+            <div className={`px-2 pt-2 pb-3 space-y-2 sm:px-3 bg-linear-to-b from-orange-50 to-white border-t border-orange-200 shadow-lg ${isScrolled ? 'shadow-2xl' : ''}`}>
               <Link
                 to="/"
                 className="block px-4 py-3 rounded-xl text-base font-medium text-gray-700 hover:bg-orange-100 transition-all duration-300 hover:scale-105 touch-target"
@@ -329,6 +385,7 @@ const Navbar = ({ selectedCategory = 'सभी', onCategoryChange }: NavbarProp
         )}
       </nav>
     </div>
+    </>
   );
 };
 
