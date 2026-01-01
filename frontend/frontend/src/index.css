@@ -14,24 +14,57 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-lg;
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 text-base sm:py-3 sm:px-6 sm:text-lg;
   }
 
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-lg;
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 text-base sm:py-3 sm:px-6 sm:text-lg;
   }
 
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 text-lg;
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 text-base sm:py-3 sm:px-6 sm:text-lg;
   }
 
   .input-field {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg;
+    @apply w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:px-4 sm:py-3 sm:text-lg;
   }
 
   .news-card {
-    @apply bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200;
+    @apply bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer;
   }
+
+  /* Mobile-first touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Mobile-optimized text sizes */
+  .text-mobile-xs { font-size: 0.75rem; line-height: 1rem; }
+  .text-mobile-sm { font-size: 0.875rem; line-height: 1.25rem; }
+  .text-mobile-base { font-size: 1rem; line-height: 1.5rem; }
+  .text-mobile-lg { font-size: 1.125rem; line-height: 1.75rem; }
+  .text-mobile-xl { font-size: 1.25rem; line-height: 1.75rem; }
+  .text-mobile-2xl { font-size: 1.5rem; line-height: 2rem; }
+
+  /* Mobile spacing utilities */
+  .space-mobile-xs > * + * { margin-left: 0.5rem; }
+  .space-mobile-sm > * + * { margin-left: 0.75rem; }
+  .space-mobile-md > * + * { margin-left: 1rem; }
+  .space-mobile-lg > * + * { margin-left: 1.5rem; }
+
+  /* Mobile padding utilities */
+  .p-mobile-xs { padding: 0.5rem; }
+  .p-mobile-sm { padding: 0.75rem; }
+  .p-mobile-md { padding: 1rem; }
+  .p-mobile-lg { padding: 1.5rem; }
+  .p-mobile-xl { padding: 2rem; }
+
+  /* Mobile margin utilities */
+  .m-mobile-xs { margin: 0.5rem; }
+  .m-mobile-sm { margin: 0.75rem; }
+  .m-mobile-md { margin: 1rem; }
+  .m-mobile-lg { margin: 1.5rem; }
+  .m-mobile-xl { margin: 2rem; }
 }
 
 /* Prose content styling for rich text */
@@ -52,35 +85,59 @@
 }
 
 .prose p {
-  @apply mb-4 text-lg;
+  @apply mb-3 sm:mb-4 text-base sm:text-lg leading-relaxed;
 }
 
-.prose h1, .prose h2, .prose h3 {
-  @apply font-bold text-gray-900 mb-3;
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  @apply font-bold text-gray-900 mb-2 sm:mb-3 leading-tight;
 }
 
 .prose h1 {
-  @apply text-3xl;
+  @apply text-xl sm:text-2xl lg:text-3xl;
 }
 
 .prose h2 {
-  @apply text-2xl;
+  @apply text-lg sm:text-xl lg:text-2xl;
 }
 
 .prose h3 {
-  @apply text-xl;
+  @apply text-base sm:text-lg lg:text-xl;
+}
+
+.prose h4 {
+  @apply text-sm sm:text-base lg:text-lg;
+}
+
+.prose h5 {
+  @apply text-sm sm:text-base;
+}
+
+.prose h6 {
+  @apply text-sm;
 }
 
 .prose ul, .prose ol {
-  @apply mb-4 pl-6;
+  @apply mb-3 sm:mb-4 pl-4 sm:pl-6;
 }
 
 .prose li {
-  @apply mb-2;
+  @apply mb-1 sm:mb-2 text-sm sm:text-base;
 }
 
 .prose a {
-  @apply text-blue-600 hover:text-blue-800 underline;
+  @apply text-blue-600 hover:text-blue-800 underline transition-colors;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic text-gray-700 my-4;
+}
+
+.prose strong, .prose b {
+  @apply font-semibold text-gray-900;
+}
+
+.prose em, .prose i {
+  @apply italic;
 }
 
 /* Marquee Animations - Seamless Continuous Loop */

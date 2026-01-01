@@ -7,16 +7,13 @@ const Marquee = () => {
   const [marqueeLoading, setMarqueeLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch marquee content
+    // Fetch marquee content using the optimized method
     const fetchMarqueeContent = async () => {
       try {
         setMarqueeLoading(true);
-        const [breakingData, announcementData] = await Promise.all([
-          marqueeAPI.getAll('breaking'),
-          marqueeAPI.getAll('announcement')
-        ]);
-        setBreakingNews(breakingData);
-        setAnnouncements(announcementData);
+        const content = await marqueeAPI.getAllContent();
+        setBreakingNews(content.breaking);
+        setAnnouncements(content.announcements);
       } catch (error) {
         console.error('Error fetching marquee content:', error);
         // Set empty arrays on error - no default content shown
