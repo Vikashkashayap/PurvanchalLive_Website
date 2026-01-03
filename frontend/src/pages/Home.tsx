@@ -25,9 +25,9 @@ const Home = ({ selectedCategory = 'सभी' }: HomeProps) => {
       try {
         setLoading(true);
         const categoryParam = category === 'सभी' ? undefined : category;
-        const newsData = await newsAPI.getAll(categoryParam);
-        // Filter only published news for public view
-        const publishedNews = newsData.filter(item => item.isPublished);
+        const response = await newsAPI.getAll(categoryParam);
+        // Extract news array from response and filter only published news for public view
+        const publishedNews = response.news.filter(item => item.isPublished);
         setNews(publishedNews);
       } catch (err) {
         console.error('Error fetching news:', err);

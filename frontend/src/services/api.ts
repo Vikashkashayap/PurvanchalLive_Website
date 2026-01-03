@@ -214,10 +214,16 @@ export const authAPI = {
 
 // News API calls
 export const newsAPI = {
-  getAll: async (category?: string): Promise<News[]> => {
+  getAll: async (category?: string, page?: number, limit?: number): Promise<{news: News[], pagination: {page: number, limit: number, total: number, pages: number}}> => {
     const params: any = {};
-    if (category) {
+    if (category && category !== 'All') {
       params.category = category;
+    }
+    if (page) {
+      params.page = page;
+    }
+    if (limit) {
+      params.limit = limit;
     }
 
     try {
@@ -231,16 +237,25 @@ export const newsAPI = {
       });
 
       // Handle the properly typed response
-      if (response?.data?.news) {
-        return response.data.news;
+      if (response?.data) {
+        return {
+          news: response.data.news || [],
+          pagination: response.data.pagination || { page: 1, limit: 10, total: 0, pages: 0 }
+        };
       }
-      // If no news data found, return empty array
+      // If no data found, return empty result
       console.warn('Unexpected API response structure:', response);
-      return [];
+      return {
+        news: [],
+        pagination: { page: 1, limit: 10, total: 0, pages: 0 }
+      };
     } catch (error) {
       console.error('Error fetching news:', error);
-      // Return empty array on error instead of throwing
-      return [];
+      // Return empty result on error instead of throwing
+      return {
+        news: [],
+        pagination: { page: 1, limit: 10, total: 0, pages: 0 }
+      };
     }
   },
 
