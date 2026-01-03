@@ -115,7 +115,25 @@ const NewsDetail = () => {
   /* ---------- SHARE ---------- */
 
   const shareOnWhatsApp = () => {
-    const text = `${cleanTitle}\n\n${newsUrl}`;
+    let text = `${cleanTitle}\n\n`;
+
+    // Add image URL if available for better preview
+    if (imageUrl) {
+      text += `${imageUrl}\n\n`;
+    }
+
+    text += `${newsUrl}`;
+
+    // Add short description if available
+    if (news.shortDescription) {
+      const shortDesc = stripHtml(news.shortDescription);
+      if (shortDesc.length > 100) {
+        text += `\n\n${shortDesc.substring(0, 100)}...`;
+      } else {
+        text += `\n\n${shortDesc}`;
+      }
+    }
+
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -157,6 +175,10 @@ const NewsDetail = () => {
           <>
             <meta property="og:image" content={`${window.location.origin}/favicon.png`} />
             <meta property="og:image:secure_url" content={`${window.location.origin}/favicon.png`} />
+            <meta property="og:image:width" content="512" />
+            <meta property="og:image:height" content="512" />
+            <meta property="og:image:type" content="image/png" />
+            <meta property="og:image:alt" content="Purvanchal Live" />
           </>
         )}
 
